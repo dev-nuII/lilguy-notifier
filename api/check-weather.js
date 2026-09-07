@@ -14,9 +14,7 @@ webpush.setVapidDetails(
   VAPID_PRIVATE_KEY
 );
 async function getLocationFromIP(ip = "") {
-  const response = await fetch(
-    `https://ipapi.co/${ip}/json/`
-  );
+  const response = await fetch(`http://ip-api.com/json/${ip}`);
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`);
@@ -24,24 +22,32 @@ async function getLocationFromIP(ip = "") {
 
   const data = await response.json();
 
-  if (data.error) {
-    throw new Error(data.reason || "Could not locate IP");
+  if (data.status === "fail") {
+    throw new Error(data.message || "Could not locate IP");
   }
 
   return {
-    ip: data.ip,
-    latitude: data.latitude,
-    longitude: data.longitude,
+    ip: data.query,
+    latitude: data.lat,
+    longitude: data.lon,
     city: data.city,
-    country: data.country_name
+    country: data.country,
   };
 }
 
 async function fetchWeather() {
   const saveResp1 = await fetch(`${FIREBASE_URL}/${SAVE_ID}.json`);
   const save1 = await saveResp1.json();
-  const { latitude, longitude } = await getLocationFromIP(save1.userIp);
-  let lat = latitude, lon = longitude;
+
+  let lat = 0, lon = 0;
+  try {
+    const loc = await getLocationFromIP(save1.userIp);
+    lat = loc.latitude;
+    lon = loc.longitude;
+  } catch (e) {
+    console.log("location lookup failed:", e);
+  }
+
   let code = null;
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
