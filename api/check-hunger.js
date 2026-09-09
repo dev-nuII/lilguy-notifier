@@ -1,31 +1,30 @@
-// api/check-hunger.js
-//
-// This is one "serverless function" — think of it like a single Python
-// function that Vercel runs for you on demand, instead of a script you
-// keep running yourself. Vercel automatically turns any file inside
-// /api into a URL: this file becomes yourproject.vercel.app/api/check-hunger
-
 const webpush = require("web-push");
 
-// These come from environment variables (set in the Vercel dashboard,
-// not written in this file) — similar to how you'd use os.environ.get()
-// in Python instead of hardcoding a secret in the script.
-const FIREBASE_URL = process.env.FIREBASE_URL;       // e.g. https://hhff-88ec0-default-rtdb.firebaseio.com
-const SAVE_ID = process.env.SAVE_ID;                  // e.g. lilguy_var0
+const FIREBASE_URL = process.env.FIREBASE_URL;
+const SAVE_ID = process.env.SAVE_ID;
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
 webpush.setVapidDetails(
-  "mailto:you@example.com", // Vercel/push spec requires a contact string here, doesn't need to be real
+  "mailto:you@example.com",
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY
 );
 
-// module.exports = ... is JS's version of Python's "if __name__ == '__main__':"
-// entry point — this is the function Vercel actually calls when the URL is hit.
+function getCurrentSeason() {
+  const month = new Date().getMonth() + 1; // JS months are 0-indexed
+  if ([12, 1, 2].includes(month)) return "winter";
+  if ([3, 4, 5].includes(month)) return "spring";
+  if ([6, 7, 8].includes(month)) return "summer";
+  return "fall";
+}
+
+// same rate tables as the Python script's season_modifers / weather multipliers
+const seasonRates = { winter: 1.25, spring: 1.0, summer: 0.9, fall: 1.0 };
+const weatherRates = { rain: 1.1, storm: 1.15, snow: 1.2 };
+
 module.exports = async function handler(req, res) {
   try {
-    // fetch() here works just like requests.get() in Python
     const saveResp = await fetch(`${FIREBASE_URL}/${SAVE_ID}.json`);
     const save = await saveResp.json();
 
@@ -34,22 +33,32 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // recompute hunger the same way your game does on load —
-    // hunger decays over time based on when it was last checked
+    const seasonMult = seasonRates[getCurrentSeason()];
+    const weatherMult = weatherRates[save.weather] ?? 1.0;
+
     let hunger = save.hunger ?? 20;
     if (save.last_hunger_check) {
       const lastCheck = new Date(save.last_hunger_check);
       const hoursPassed = (Date.now() - lastCheck.getTime()) / 3600000;
-      hunger = Math.max(0, hunger - Math.floor(hoursPassed));
+      hunger = Math.max(0, hunger - Math.floor(hoursPassed) * seasonMult * weatherMult);
     }
+
+    // write the corrected hunger back — PATCH only touches these two fields
+    const nowIso = new Date().toISOString();
+    await fetch(`${FIREBASE_URL}/${SAVE_ID}.json`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        hunger: hunger,
+        last_hunger_check: nowIso,
+      }),
+    });
 
     if (hunger >= 10) {
       res.status(200).json({ status: "not hungry yet", hunger });
       return;
     }
 
-    // avoid spamming a notification every 30 minutes once hunger is low —
-    // only send again if it's been at least 6 hours since the last one
     const lastNotified = save.last_notified ? new Date(save.last_notified) : null;
     const hoursSinceNotified = lastNotified ? (Date.now() - lastNotified.getTime()) / 3600000 : 999;
     if (hoursSinceNotified < 6) {
@@ -57,11 +66,8 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // get the saved push subscription (the browser generated this
-    // when you tapped "Enable Notifications")
     const subResp = await fetch(`${FIREBASE_URL}/push_subscription.json`);
     const subscription = await subResp.json();
-
     if (!subscription) {
       res.status(200).json({ status: "no push subscription saved" });
       return;
@@ -71,19 +77,16 @@ module.exports = async function handler(req, res) {
       title: "Lil Guy",
       body: `He's hungry! Hunger is at ${Math.round(hunger)}.`,
     });
-
     await webpush.sendNotification(subscription, payload);
 
-    // record that we just notified, so we don't do it again for 6 hours
-    await fetch(`${FIREBASE_URL}/${SAVE_ID}/last_notified.json`, {
-      method: "PUT",
+    await fetch(`${FIREBASE_URL}/${SAVE_ID}.json`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(new Date().toISOString()),
+      body: JSON.stringify({ last_notified: new Date().toISOString() }),
     });
 
     res.status(200).json({ status: "notification sent", hunger });
   } catch (e) {
-    // equivalent of an except Exception as e: print(e) in Python
     console.log("check-hunger error:", e);
     res.status(500).json({ status: "error", message: e.message });
   }
