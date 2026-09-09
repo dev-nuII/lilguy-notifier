@@ -1,21 +1,26 @@
 const db = require("./firebase");
 
 module.exports = async function handler(req, res) {
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://dev-nuii.github.io"
+  );
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   if (req.method !== "GET") {
-    return res.status(405).json({
-      error: "Method not allowed"
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const snapshot = await db
-      .ref("lilguy_var0")
-      .once("value");
+    const snapshot = await db.ref("lilguy_var0").once("value");
 
     return res.status(200).json({
       save: snapshot.val()
     });
-
   } catch (error) {
     console.error("load-save error:", error);
 
