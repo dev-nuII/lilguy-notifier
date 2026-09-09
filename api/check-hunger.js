@@ -1,17 +1,14 @@
 const webpush = require("web-push");
 const db = require("./firebase");
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
-
 webpush.setVapidDetails(
   "mailto:you@example.com",
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
 );
 
 function getCurrentSeason() {
-  const month = new Date().getMonth() + 1; // JS months are 0-indexed
+  const month = new Date().getMonth() + 1;
 
   if ([12, 1, 2].includes(month)) return "winter";
   if ([3, 4, 5].includes(month)) return "spring";
@@ -20,7 +17,6 @@ function getCurrentSeason() {
   return "fall";
 }
 
-// Same rate tables as the Python script's season_modifers / weather multipliers
 const seasonRates = {
   winter: 1.25,
   spring: 1.0,
@@ -36,8 +32,11 @@ const weatherRates = {
 
 module.exports = async function handler(req, res) {
   try {
-    // Load save from Firebase using Admin SDK
-    const saveSnapshot = await db.ref("lilguy_var0").once("value");
+    // Get the current save
+    const saveSnapshot = await db
+      .ref("lilguy_var0")
+      .once("value");
+
     const save = saveSnapshot.val();
 
     if (!save) {
@@ -46,16 +45,22 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const seasonMult = seasonRates[getCurrentSeason()];
-    const weatherMult = weatherRates[save.weather] ?? 1.0;
+    const seasonMult =
+      seasonRates[getCurrentSeason()] ?? 1.0;
+
+    const weatherMult =
+      weatherRates[save.weather] ?? 1.0;
 
     let hunger = save.hunger ?? 20;
 
+    // Calculate hunger accumulated since the last server check
     if (save.last_hunger_check) {
-      const lastCheck = new Date(save.last_hunger_check);
+      const lastCheck =
+        new Date(save.last_hunger_check);
 
       const hoursPassed =
-        (Date.now() - lastCheck.getTime()) / 3600000;
+        (Date.now() - lastCheck.getTime()) /
+        3600000;
 
       hunger = Math.max(
         0,
@@ -66,15 +71,15 @@ module.exports = async function handler(req, res) {
       );
     }
 
-    // Write corrected hunger back to Firebase
-    const nowIso = new Date().toISOString();
+    // Record that the server checked hunger
+    await db
+      .ref("lilguy_var0")
+      .update({
+        hunger,
+        last_hunger_check: new Date().toISOString()
+      });
 
-    await db.ref("lilguy_var0").update({
-      hunger: hunger,
-      last_hunger_check: nowIso
-    });
-
-    // Not hungry enough to notify
+    // Don't notify until hunger is below 10
     if (hunger >= 10) {
       return res.status(200).json({
         status: "not hungry yet",
@@ -82,14 +87,15 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Check when we last sent a notification
+    // Don't send another notification for 6 hours
     const lastNotified = save.last_notified
       ? new Date(save.last_notified)
       : null;
 
     const hoursSinceNotified = lastNotified
-      ? (Date.now() - lastNotified.getTime()) / 3600000
-      : 999;
+      ? (Date.now() - lastNotified.getTime()) /
+        3600000
+      : Infinity;
 
     if (hoursSinceNotified < 6) {
       return res.status(200).json({
@@ -98,11 +104,14 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Load push subscription using Admin SDK
-    const subSnapshot =
-      await db.ref("push_subscription").once("value");
+    // Get push subscription
+    const subscriptionSnapshot =
+      await db
+        .ref("push_subscription")
+        .once("value");
 
-    const subscription = subSnapshot.val();
+    const subscription =
+      subscriptionSnapshot.val();
 
     if (!subscription) {
       return res.status(200).json({
@@ -110,7 +119,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Send push notification
+    // Send notification
     const payload = JSON.stringify({
       title: "Lil Guy",
       body: `He's hungry! Hunger is at ${Math.round(hunger)}.`
@@ -122,21 +131,26 @@ module.exports = async function handler(req, res) {
     );
 
     // Record notification time
-    await db.ref("lilguy_var0").update({
-      last_notified: new Date().toISOString()
-    });
+    await db
+      .ref("lilguy_var0")
+      .update({
+        last_notified: new Date().toISOString()
+      });
 
     return res.status(200).json({
       status: "notification sent",
       hunger
     });
 
-  } catch (e) {
-    console.error("check-hunger error:", e);
+  } catch (error) {
+    console.error(
+      "check-hunger error:",
+      error
+    );
 
     return res.status(500).json({
       status: "error",
-      message: e.message
+      message: error.message
     });
   }
 };
