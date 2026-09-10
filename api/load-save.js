@@ -1,31 +1,25 @@
-const db = require("./firebase");
+ const admin = require("firebase-admin");
 
-module.exports = async function handler(req, res) {
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://dev-nuii.github.io"
-  );
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+if (!admin.apps.length) {
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
+  console.log("projectId:", process.env.FIREBASE_PROJECT_ID);
+  console.log("clientEmail:", process.env.FIREBASE_CLIENT_EMAIL);
+  console.log("databaseURL:", process.env.FIREBASE_DATABASE_URL);
+  console.log("privateKey starts with:", privateKey ? privateKey.slice(0, 30) : "MISSING");
+
+  if (!privateKey) {
+    throw new Error("FIREBASE_PRIVATE_KEY is not configured");
   }
 
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: privateKey.replace(/\\n/g, "\n"),
+    }),
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
+  });
+}
 
-  try {
-    const snapshot = await db.ref("lilguy_var0").once("value");
-
-    return res.status(200).json({
-      save: snapshot.val()
-    });
-  } catch (error) {
-    console.error("load-save error:", error);
-
-    return res.status(500).json({
-      error: "Failed to load save"
-    });
-  }
-};
+module.exports = admin.database();
