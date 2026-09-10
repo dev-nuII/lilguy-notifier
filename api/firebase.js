@@ -1,4 +1,4 @@
-const admin = require("firebase-admin");
+const admin = require("firebase-admin").default || require("firebase-admin");
 
 if (!admin.apps.length) {
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -11,9 +11,9 @@ if (!admin.apps.length) {
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: privateKey.replace(/\\n/g, "\n")
+      privateKey: privateKey.replace(/\\n/g, "\n"),
     }),
-    databaseURL: process.env.FIREBASE_DATABASE_URL
+    databaseURL: process.env.FIREBASE_DATABASE_URL,
   });
 }
 
