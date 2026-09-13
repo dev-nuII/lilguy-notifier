@@ -28,8 +28,11 @@ module.exports = async function handler(req, res) {
     const saveKey = await lookupResp.json();
 
     if (!saveKey) {
-      return res.status(404).json({ error: "Code not recognized" });
-    }
+  return res.status(404).json({ error: "Code not recognized" });
+}
+
+const ipKey = sanitizeIpKey(getClientIp(req));
+await linkIpToSave(ipKey, saveKey); // was just the single ip_map PUT before
 
     // link this visitor's IP to that save
     const ipKey = sanitizeIpKey(getClientIp(req));
