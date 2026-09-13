@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
     if (!saveKey) {
       saveKey = "save_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
       await fetch(`${FIREBASE_URL}/ip_map/${ipKey}.json?auth=${FIREBASE_SECRET}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(saveKey),
       });
