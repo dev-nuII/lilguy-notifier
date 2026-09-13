@@ -35,7 +35,6 @@ const ipKey = sanitizeIpKey(getClientIp(req));
 await linkIpToSave(ipKey, saveKey); // was just the single ip_map PUT before
 
     // link this visitor's IP to that save
-    const ipKey = sanitizeIpKey(getClientIp(req));
     await fetch(`${FIREBASE_URL}/ip_map/${ipKey}.json?auth=${FIREBASE_SECRET}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
