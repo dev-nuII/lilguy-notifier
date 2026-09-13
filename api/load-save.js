@@ -23,14 +23,26 @@ module.exports = async function handler(req, res) {
     let saveKey = await mapResp.json();
 
     if (!saveKey) {
-      // never seen this IP before — give it a brand new save
-      saveKey = "save_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-      await fetch(`${FIREBASE_URL}/ip_map/${ipKey}.json?auth=${FIREBASE_SECRET}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(saveKey),
-      });
-    }
+  saveKey = "save_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  await fetch(`${FIREBASE_URL}/ip_map/${ipKey}.json?auth=${FIREBASE_SECRET}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(saveKey),
+  });
+
+  // new: give this save a recovery code, stored both directions
+  const recoveryCode = generateRecoveryCode();
+  await fetch(`${FIREBASE_URL}/recovery_codes/${recoveryCode}.json?auth=${FIREBASE_SECRET}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(saveKey),
+  });
+  await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ recovery_code: recoveryCode }),
+  });
+}
 
     const saveResp = await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`);
     const save = await saveResp.json();
