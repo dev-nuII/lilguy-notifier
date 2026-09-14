@@ -1,3 +1,4 @@
+const webpush = require('web-push');
 const FIREBASE_URL = process.env.FIREBASE_URL;
 const FIREBASE_SECRET = process.env.FIREBASE_SECRET;
 
@@ -57,6 +58,7 @@ module.exports = async function handler(req, res) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(saveKey),
       });
+      const vapidkeys = webpush.generateVAPIDKeys();
 
       const defaultSave = {
         mental_state: "neutral",
@@ -82,6 +84,9 @@ module.exports = async function handler(req, res) {
         weather: "clear",
         save_num: 0,
         recovery_code: recoveryCode,
+        vapid_private_key: vapidKeys.privateKey,
+        vapid_public_key: vapidKeys.publicKey,
+        
       };
 
       await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
