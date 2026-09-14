@@ -58,7 +58,7 @@ module.exports = async function handler(req, res) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(saveKey),
       });
-      const vapidkeys = webpush.generateVAPIDKeys();
+      const vapidKeys = webpush.generateVAPIDKeys();
 
       const defaultSave = {
         mental_state: "neutral",
@@ -99,10 +99,11 @@ module.exports = async function handler(req, res) {
     }
 
     const saveResp = await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`);
-    const save = await saveResp.json();
+const save = await saveResp.json();
 
-    return res.status(200).json({ save, saveKey });
-  } catch (error) {
+if (save) delete save.vapid_private_key; // never send this to the browser
+
+return res.status(200).json({ save, saveKey });  } catch (error) {
     console.error("load-save error:", error);
     return res.status(500).json({ error: "Failed to load save" });
   }
