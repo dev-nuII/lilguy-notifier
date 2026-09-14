@@ -84,9 +84,6 @@ module.exports = async function handler(req, res) {
         weather: "clear",
         save_num: 0,
         recovery_code: recoveryCode,
-        vapid_private_key: vapidKeys.privateKey,
-        vapid_public_key: vapidKeys.publicKey,
-        
       };
 
       await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
