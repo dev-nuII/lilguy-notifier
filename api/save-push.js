@@ -21,6 +21,7 @@ module.exports = async function handler(req, res) {
     const subscription = req.body;
     if (!subscription || !subscription.endpoint || !subscription.keys) {
       return res.status(400).json({ error: "Invalid push subscription" });
+      console.log("invalid push subscription");
     }
 
     const ipKey = sanitizeIpKey(getClientIp(req));
