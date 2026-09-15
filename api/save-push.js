@@ -29,7 +29,9 @@ module.exports = async function handler(req, res) {
 
     if (!saveKey) {
       return res.status(400).json({ error: "No save found for this device yet — load the game first." });
+      console.log("No save found for this device yet - load the game first");
     }
+    
 
     await fetch(`${FIREBASE_URL}/saves/${saveKey}/subscription.json?auth=${FIREBASE_SECRET}`, {
       method: "PUT",
@@ -38,8 +40,10 @@ module.exports = async function handler(req, res) {
     });
 
     return res.status(200).json({ success: true, saveKey });
+    console.log("save sucessful!");
   } catch (error) {
     console.error("save-push error:", error);
     return res.status(500).json({ error: "Failed to save subscription" });
+    console.log("failed to save subscription", error)
   }
 };
