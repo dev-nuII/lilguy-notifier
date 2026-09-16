@@ -1,0 +1,13 @@
+1. ported lilguy.py over to html and js (used Claude)
+2. created a firebase database to store variables (so it can be accessed over different devices (script or web))
+3. created a vercel project to check variables and added logic so if the variables change (hunger dips too low) the script will send out a push notification
+4. created a cron-job to visit the url every 30 mins (to check if hunger dropped to a certain percentage)
+5. created another vercel addition to check if weather changed in users area (grabs ip saved from lilguy application and grabs the latitude and longitude from the ip and looks the weather up using lat and lon and checks it against last seen weather var and issue a notification if so)
+6. created another cron-job to visit 2nd vercel url every hour
+7. updated hunger.js to write the hunger value to the database and to incorporate seasonal values
+8. updated firebase database to be private, and never touch client’s browser
+9. updated touch mapping to accurately pinpoint where the user is clicking
+10. implemented a ip-save feature, along with updated saves. (added a recovery save phrase to add more ips that can run your save)
+11.added the rotation logic for web app.
+12. replaced the ip-based save system with a browser-cookie save-code system: load-save/save-game/redeem-code/save-push now all key off an HttpOnly "save code" cookie (Firebase path /saves/{save_code}) instead of the client's IP address, the save_code is stored inside the save record itself so it can't get lost, and entering a matching code in "Load with code" re-points the cookie (and therefore the browser) at that save. Removed the now-unused link-ip endpoint and ip_map/recovery_codes trees.
+13. moved the frontend (index.html, sw.js) into this same Vercel project so the game and the API are served from one origin. The GitHub Pages / Vercel split was causing the save-code cookie to be a third-party cookie, which Safari (and increasingly other browsers) block by default -- the cookie never actually got stored, so every request looked cookie-less: notifications failed with "save not found" and every save-triggering request minted a brand-new save code instead of reusing the real one. Same-origin fixes this. Switched the cookie to SameSite=Lax (no longer need SameSite=None for a cross-site cookie) and switched fetch() calls in index.html to relative /api/... paths.
