@@ -40,11 +40,16 @@ module.exports = async function handler(req, res) {
           hunger = Math.max(0, hunger - Math.floor(hoursPassed) * seasonMult * weatherMult);
         }
 
-        await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ hunger, last_hunger_check: new Date().toISOString() }),
-        });
+        const patchResp = await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ hunger, last_hunger_check: new Date().toISOString() }),
+});
+if (!patchResp.ok) {
+  const errText = await patchResp.text();
+  results.push({ saveKey, status: "PATCH failed", detail: errText });
+  continue;
+}
 
         if (hunger >= 10) {
           results.push({ saveKey, status: "not hungry yet", hunger });
