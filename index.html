@@ -33,6 +33,10 @@
   <input id="recoveryInput" placeholder="ABCD-EFGH-JKLM" style="padding: 6px;">
   <button id="redeemBtn">Load with code</button>
 </div>
+<div style="position: fixed; top: 70px; left: 20px; z-index: 20; font-family: monospace;">
+  <input id="recoveryInput" placeholder="Henry" style="padding: 6px;">
+  <button id="userName">Enter a name</button>
+</div>
 <script>
 // ---------- AUTH ----------
 // IP addresses are NOT a reliable way to identify a device — mobile carriers
@@ -932,6 +936,11 @@ async function setupPush() {
     alert("Notifications enabled!");
   } catch (e) {
     alert("Couldn't reach the server to save notification subscription: " + e.message);
+  }
+}
+document.getElementById("userName").addEventListener("click", async () => {
+  try { 
+    alert("Button works")
   }
 }
 document.getElementById("redeemBtn").addEventListener("click", async () => {
