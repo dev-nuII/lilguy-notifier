@@ -72,7 +72,7 @@ module.exports = async function handler(req, res) {
         await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ last_notified: new Date().toISOString() }),
+          body: JSON.stringify({ last_notified: lastNotified.toISOString() }),
         });
 
         results.push({ saveKey, status: "notification sent", hunger });
