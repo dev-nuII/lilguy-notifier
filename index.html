@@ -937,12 +937,12 @@ async function setupPush() {
     alert("Couldn't reach the server to save notification subscription: " + e.message);
   }
 }
-document.getElementById("userName").addEventListener("click", async () => {
-  const user = document.getElementById("userInput").value;
-  try { 
-    alert("username is", user);
-  }
-}
+document.getElementById("userName").addEventListener("click", () => {
+  const user = document.getElementById("userInput").value.trim();
+  if (!user) return;
+  state.username = user;          // client-side only for now
+  alert("username is " + user);
+});
 document.getElementById("redeemBtn").addEventListener("click", async () => {
   const code = document.getElementById("recoveryInput").value;
   try {
