@@ -255,8 +255,13 @@ function relationshipDescriptor() {
   return "just met";
 }
 
-function dateOnlyUTC(d) {
-  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function parseDateStr(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
 }
 
 function gainBond(baseAmount) {
@@ -317,11 +322,11 @@ async function saveToCloud() {
     x_pos: state.x,
     y_pos: state.y,
     x1_pos: state.x1,
-    last_open_date: new Date().toISOString().slice(0, 10),
+    last_open_date: parseDateStr(saved.last_open_date),
     streak: state.streak,
     bond: state.bond,
     animation: state.animation,
-    last_hunger_check: new Date().toISOString(),
+    last_hunger_check: todayStr().toISOString()
     hunger: state.hunger,
     machine_id: "web-client",
     pets_today: state.pets_today,
@@ -429,7 +434,7 @@ async function startup() {
 
   // load save
   const saved = await loadSave();
-  const today = dateOnlyUTC(new Date());
+  const today = parseDateStr(todayStr());
 
   if (saved) {
     state.mental_state = saved.mental_state ?? state.mental_state;
