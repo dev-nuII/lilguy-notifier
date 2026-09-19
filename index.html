@@ -33,7 +33,7 @@
   <button id="redeemBtn">Load with code</button>
 </div>
 <div style="position: fixed; top: 90px; left: 10px; z-index: 10; font-family: monospace;">
-  <input id="recoveryInput" placeholder="Henry" style="padding: 6px;">
+  <input id="userInput" placeholder="Henry" style="padding: 6px;">
   <button id="userName">Enter a name</button>
 </div>
 <script>
@@ -938,8 +938,9 @@ async function setupPush() {
   }
 }
 document.getElementById("userName").addEventListener("click", async () => {
+  const user = document.getElementById("userInput").value;
   try { 
-    alert("Button works")
+    alert("username is", user);
   }
 }
 document.getElementById("redeemBtn").addEventListener("click", async () => {
