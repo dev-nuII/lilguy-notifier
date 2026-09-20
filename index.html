@@ -79,8 +79,9 @@
   document.getElementById("enableNotifs").style.display = "none"; // hide once done
 });
 // play sfx or sound effects
-  function playAudio(audioToPlay) {
+  function playAudio(audioToPlay, volumeLevel) {
     const audio = document.getElementById(audioToPlay);
+    audio.volume = volumeLevel; // Set volume between 0.0 and 1.0
     audio.play();
 }
 
