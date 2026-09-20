@@ -36,6 +36,23 @@
   <input id="userInput" placeholder="Henry" style="padding: 6px;">
   <button id="userName">Enter a name</button>
 </div>
+<!-- background music -->
+<audio id="myAudio1" src="alex-morgan-lofi-coffee-shop-568150.mp3"></audio>
+<!-- text showing sfx -->
+<audio id="myAudio2" src="freesound_community-bllrr-text-loop-82399.mp3"></audio>
+<!-- winter noises -->
+<audio id="myAudio3" src="dragon-studio-howling-wind-and-snow-515984.mp3"></audio>
+<!-- windy day sfx -->
+<audio id="myAudio4" src="freesound_community-windy-day-23531.mp3"></audio>
+<!-- summer sound sfx -->
+<audio id="myAudio5" src="soul_serenity_sounds-summer-insects-243572.mp3"></audio>
+<!-- rain abiance -->
+<audio id="myAudio6" src="soundsforyou-soft-rain-ambient-111154.mp3"></audio>
+<!-- menu click sound -->
+<audio id="myAudio7" src="universfield-interface-click-124476.mp3"></audio>
+
+
+  
 <script>
 // ---------- AUTH ----------
 // IP addresses are NOT a reliable way to identify a device — mobile carriers
@@ -61,6 +78,12 @@
   await setupPush();
   document.getElementById("enableNotifs").style.display = "none"; // hide once done
 });
+// play sfx or sound effects
+  function playAudio(audioToPlay) {
+    const audio = document.getElementById(audioToPlay);
+    audio.play();
+}
+
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
