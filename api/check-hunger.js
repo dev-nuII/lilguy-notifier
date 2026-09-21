@@ -5,10 +5,18 @@ const FIREBASE_SECRET = process.env.FIREBASE_SECRET;
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
+const TZ = "America/Chicago";
+
+function toLocal(iso) {
+  return new Date(iso).toLocaleString("en-US", { timeZone: TZ });
+}
+
 webpush.setVapidDetails("mailto:you@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 function getCurrentSeason() {
-  const month = new Date().getMonth() + 1;
+  const month = Number(
+    new Date().toLocaleString("en-US", { timeZone: TZ, month: "numeric" })
+  );
   if ([12, 1, 2].includes(month)) return "winter";
   if ([3, 4, 5].includes(month)) return "spring";
   if ([6, 7, 8].includes(month)) return "summer";
@@ -50,8 +58,7 @@ module.exports = async function handler(req, res) {
     await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hunger, last_hunger_check: save.last_hunger_check }),
-    });
+      body: JSON.stringify({ body: JSON.stringify({hunger,last_hunger_check: save.last_hunger_check, last_hunger_check_local: toLocal(save.last_hunger_check),}),}),});
 
     if (hunger >= 10) {
       results.push({ saveKey, status: "not hungry yet", hunger });
@@ -76,11 +83,11 @@ module.exports = async function handler(req, res) {
       body: `He's hungry! Hunger is at ${Math.round(hunger)}.`,
     }));
 
-    await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ last_notified: new Date().toISOString() }),
-    });
+    const notifiedAt = new Date().toISOString();
+await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({last_notified: notifiedAt,last_notified_local: toLocal(notifiedAt),}),});
 
     results.push({ saveKey, status: "notification sent", hunger });
   } catch (innerError) {
