@@ -36,6 +36,14 @@
   <input id="userInput" placeholder="Henry" style="padding: 6px;">
   <button id="userName">Enter a name</button>
 </div>
+<canvas id="game" width="800" height="900"></canvas>
+<div id="startScreen" style="position:fixed;inset:0;z-index:20;
+     background:#000;display:flex;flex-direction:column;
+     align-items:center;justify-content:center;font-family:monospace;color:#fff;">
+  <h1 style="letter-spacing:3px;font-size:32px;margin-bottom:24px;">LIL GUY</h1>
+  <button id="playBtn" style="padding:14px 44px;font-size:18px;font-family:monospace;
+       background:#00ff00;border:none;cursor:pointer;">PLAY</button>
+</div>
 <!-- background music -->
 <audio id="myAudio1" src="alex-morgan-lofi-coffee-shop-568150.mp3"></audio>
 <!-- winter noises -->
@@ -101,6 +109,40 @@ function tryStartMusic() {
   window.addEventListener(evt, () => {
     if (state.session_seconds >= 30) tryStartMusic();
   }, { passive: true });
+});
+// title screen music
+  let titleStarted = false;
+
+function tryStartTitle() {
+  if (titleStarted) return;
+  const t = document.getElementById("myAudio7");
+  t.loop = true;
+  t.volume = 0.4;
+  t.play().then(() => { titleStarted = true; }).catch(() => {});
+}
+
+function stopTitle() {
+  const t = document.getElementById("myAudio7");
+  const steps = 15;
+  let i = 0;
+  const startVol = t.volume;
+  const fade = setInterval(() => {
+    i++;
+    t.volume = Math.max(0, startVol * (1 - i / steps));
+    if (i >= steps) {
+      clearInterval(fade);
+      t.pause();
+      t.currentTime = 0;
+    }
+  }, 40); // ~600ms fade
+}
+
+document.getElementById("startScreen").addEventListener("pointerdown", tryStartTitle);
+tryStartTitle();
+document.getElementById("playBtn").addEventListener("click", () => {
+  stopTitle();
+  document.getElementById("startScreen").remove();
+  startup();
 });
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
@@ -1010,7 +1052,6 @@ document.getElementById("redeemBtn").addEventListener("click", async () => {
   }
 });
 
-startup();
 </script>
 </body>
 </html>
