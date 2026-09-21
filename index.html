@@ -79,22 +79,13 @@
   document.getElementById("enableNotifs").style.display = "none"; // hide once done
 });
 // play sfx or sound effects---------------
-  function playAudio(audioToPlay, volumeLevel) {
-    const audio = document.getElementById(audioToPlay);
-    audio.volume = volumeLevel; // Set volume between 0.0 and 1.0
-    audio.play();
+ function playAudio(id, volume) {
+  const audio = document.getElementById(id);
+  audio.volume = volume;
+  audio.play().catch(() => {}); // browsers may block autoplay until the user interacts
 }
-function playAudioNext(audioToPlay, volumeLevel, nextAudio) {
-  const audio = document.getElementById(audioToPlay);
-  audio.volume = volumeLevel;
-  audio.play();
-  audio.addEventListener('ended', () => {
-  const audio2 = new Audio(document.getElemenrById(nextAudio));
-  audio2.play();
-});
-}
-function playBackgroundMusic() {
-  playAudioNext
+
+let musicStarted = false;
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -578,17 +569,13 @@ async function startup() {
 let startMusic = True;
   function tick() {
   if (!state.running) return;
-  if (state.session_seconds % 30 === 0 && state.session_seconds !== 0 && startMusic === True) {
-    const audio1 = document.getElementById(myAudio1);
-    audio1.volume = volumeLevel;
-    audio1.play();
-    audio1.addEventListener('ended', () => {
-    startMusic = False;
-    }
-                            }
-  if (state.session_seconds % 240 === 0 && state.session_seconds !== 0 && startMusic === False) {
-    playAudioNext(myAudio1, 0.3, myAudio1);
-  }
+  if (!musicStarted && state.session_seconds >= 30) {
+  musicStarted = true;
+  const music = document.getElementById("myAudio1");
+  music.loop = true;      // no need for the "ended" handling at all
+  music.volume = 0.3;
+  music.play().catch(() => {});
+}
   // hunger loop
   if (state.session_seconds % 3600 === 0 && state.session_seconds !== 0) {
     state.hunger = Math.max(0, state.hunger - mods.hunger_drain * hunger_drain_weather);
