@@ -84,39 +84,6 @@
   audio.volume = volume;
   audio.play().catch(() => {}); // browsers may block autoplay until the user interacts
 }
-let typed_line = "";
-let typed_chars = 0;
-let lastSurface = "_>";
-const TYPE_MS = 50; // ms per character
-
-function startTypeSfx() {
-  const a = document.getElementById("myAudio2");
-  a.loop = true;
-  a.volume = 0.4;
-  a.currentTime = 0;
-  a.play().catch(() => {});
-}
-function stopTypeSfx() {
-  const a = document.getElementById("myAudio2");
-  a.pause();
-  a.currentTime = 0;
-}
-
-setInterval(() => {
-  if (!state.running) { stopTypeSfx(); return; }
-  const line = state.current_line;
-
-  if (line !== typed_line) {          // a new line just appeared
-    typed_line = line;
-    typed_chars = 0;
-    if (line) startTypeSfx(); else stopTypeSfx();
-  }
-  if (line && typed_chars < line.length) {
-    typed_chars++;
-    if (typed_chars >= line.length) stopTypeSfx();  // done typing, sound ends
-    draw(lastSurface, false);         // redraw without moving the weather
-  }
-}, TYPE_MS);
 
 let musicStarted = false;
 
@@ -298,26 +265,22 @@ function checkUnlocks() {
     }
   }
 }
-function drawWrappedText(text, x, y, maxChars, lineHeight, color, visible = text.length) {
+function drawWrappedText(text, x, y, maxChars, lineHeight, color) {
   const words = text.split(" ");
-  const lines = [];
   let line = "";
-  for (const word of words) {
-    const test = line + word + " ";
-    if (test.length > maxChars && line !== "") { lines.push(line); line = word + " "; }
-    else line = test;
-  }
-  lines.push(line);
-
-  ctx.fillStyle = color;
-  let remaining = visible;
   let currentY = y;
-  for (const l of lines) {
-    if (remaining <= 0) break;
-    ctx.fillText(l.slice(0, remaining), x, currentY);
-    remaining -= l.length;
-    currentY += lineHeight;
+  ctx.fillStyle = color;
+  for (const word of words) {
+    const testLine = line + word + " ";
+    if (testLine.length > maxChars && line !== "") {
+      ctx.fillText(line, x, currentY);
+      line = word + " ";
+      currentY += lineHeight;
+    } else {
+      line = testLine;
+    }
   }
+  ctx.fillText(line, x, currentY);
 }
     
 function relationshipDescriptor() {
@@ -754,10 +717,9 @@ if (isNightTime()) {
 
   // current dialogue line
   if (state.current_line) {
-    const clampedX = Math.min(state.x, 600);
-    const shown = state.current_line === typed_line ? typed_chars : 0;
-    drawWrappedText(state.current_line, clampedX, 430, 20, 22, state.lilguy_color, shown);
-  }
+  const clampedX = Math.min(state.x, 600); // leaves room for ~20 chars before the right edge
+  drawWrappedText(state.current_line, clampedX, 430, 20, 22, state.lilguy_color);
+}
   
   // lil guy sprite
   drawText(text_surface, state.x, 450, state.lilguy_color);
