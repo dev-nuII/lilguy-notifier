@@ -429,6 +429,11 @@ async function startup() {
   else state.season = "fall";
   mods = season_modifiers[state.season];
 
+  // weather
+  const w = await fetchWeather();
+  state.weather = w.weather;
+  hunger_drain_weather = w.drain;
+
   // first snow
   if (state.weather === "snow" && !state.seen_first_snow) {
   state.seen_first_snow = true;
@@ -447,10 +452,6 @@ async function startup() {
   state.bond += 8;
   checkUnlocks();
 }
-  // weather
-  const w = await fetchWeather();
-  state.weather = w.weather;
-  hunger_drain_weather = w.drain;
 
   // load save
   const saved = await loadSave();
@@ -569,8 +570,7 @@ async function startup() {
 let startMusic = True;
   function tick() {
   if (!state.running) return;
-  if (!musicStarted && state.session_seconds >= 30) {
-  musicStarted = true;
+  if (state.session_seconds >= 30) {
   const music = document.getElementById("myAudio1");
   music.loop = true;      // no need for the "ended" handling at all
   music.volume = 0.3;
