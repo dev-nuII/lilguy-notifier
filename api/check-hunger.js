@@ -89,11 +89,6 @@ module.exports = async function handler(req, res) {
   }
 }
     results.push({ saveKey, status: "notification sent", hunger });
-  } catch (innerError) {
-    console.error(`check-hunger error for ${saveKey}:`, innerError);
-    results.push({ saveKey, status: "error", message: innerError.message });
-  }
-}
 
     return res.status(200).json({ results });
   } catch (error) {
