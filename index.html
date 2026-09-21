@@ -86,6 +86,23 @@
 }
 
 let musicStarted = false;
+
+function tryStartMusic() {
+  if (musicStarted) return;
+  const music = document.getElementById("myAudio1");
+  music.loop = true;
+  music.volume = 0.3;
+  music.play()
+    .then(() => { musicStarted = true; })
+    .catch(err => console.log("music blocked:", err.name));
+}
+
+// also retry on any real user gesture once 30s have passed
+["click", "touchend", "keydown"].forEach(evt => {
+  window.addEventListener(evt, () => {
+    if (state.session_seconds >= 30) tryStartMusic();
+  }, { passive: true });
+});
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -573,13 +590,7 @@ async function startup() {
 // ---------- MAIN LOOP (runs once per second, matching original clock.tick(1)) ----------
   function tick() {
   if (!state.running) return;
-  if (!musicStarted && state.session_seconds >= 30) {
-  musicStarted = true;
-  const music = document.getElementById("myAudio1");
-  music.loop = true;
-  music.volume = 0.3;
-  music.play().catch(() => {});
-}
+ if (!musicStarted && state.session_seconds >= 30) tryStartMusic();
   // hunger loop
   if (state.session_seconds % 3600 === 0 && state.session_seconds !== 0) {
     state.hunger = Math.max(0, state.hunger - mods.hunger_drain * hunger_drain_weather);
