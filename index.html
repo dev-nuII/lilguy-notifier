@@ -754,9 +754,10 @@ if (isNightTime()) {
 
   // current dialogue line
   if (state.current_line) {
-  const clampedX = Math.min(state.x, 600); // leaves room for ~20 chars before the right edge
-  drawWrappedText(state.current_line, clampedX, 430, 20, 22, state.lilguy_color);
-}
+    const clampedX = Math.min(state.x, 600);
+    const shown = state.current_line === typed_line ? typed_chars : 0;
+    drawWrappedText(state.current_line, clampedX, 430, 20, 22, state.lilguy_color, shown);
+  }
   
   // lil guy sprite
   drawText(text_surface, state.x, 450, state.lilguy_color);
