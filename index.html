@@ -281,6 +281,7 @@ function drawWrappedText(text, x, y, maxChars, lineHeight, color) {
     }
   }
   ctx.fillText(line, x, currentY);
+  playAudio(myAudio2, 0.4)
 }
     
 function relationshipDescriptor() {
@@ -313,6 +314,7 @@ function fillRect(x, y, w, h, color) {
 function drawText(text, x, y, color) {
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
+  playAudio(myAudio2, 0.4)
 }
 function clearScreen(color) {
   fillRect(0, 0, canvas.width, canvas.height, color);
