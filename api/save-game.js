@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
     data.save_code = code;
 
     await fetch(`${FIREBASE_URL}/saves/${code}.json?auth=${FIREBASE_SECRET}`, {
-      method: "PUT",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
