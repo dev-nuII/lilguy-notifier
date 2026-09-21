@@ -30,69 +30,61 @@ module.exports = async function handler(req, res) {
     const results = [];
 
     for (const [saveKey, save] of Object.entries(allSaves)) {
-      try {
-        const weatherMult = weatherRates[save.weather] ?? const now = Date.now();
-        const now = Date.now();
-        let hunger = save.hunger ?? 20;
+  try {
+    const weatherMult = weatherRates[save.weather] ?? 1.0;
+    const now = Date.now();
+    let hunger = save.hunger ?? 20;
 
-        if (save.last_hunger_check) {
-          const hoursPassed = (now - new Date(save.last_hunger_check).getTime()) / 3600000;
-          const wholeHours = Math.floor(hoursPassed);
-          if (wholeHours >= 1) {
-             hunger = Math.max(0, hunger - wholeHours * seasonMult * weatherMult);
-              // advance only by the hours consumed, keeping the leftover fraction
-             save.last_hunger_check = new Date(
-             new Date(save.last_hunger_check).getTime() + wholeHours * 3600000
-             ).toISOString();
-            }
-            } else {
-             save.last_hunger_check = new Date(now).toISOString();
-           }
-        await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ hunger, last_hunger_check: save.last_hunger_check }),
-        });
-
-        if (hunger >= 10) {
-          results.push({ saveKey, status: "not hungry yet", hunger });
-          continue;
-        }
-
-        const lastNotified = save.last_notified ? new Date(save.last_notified) : null;
-        const hoursSince = lastNotified ? (Date.now() - lastNotified.getTime()) / 3600000 : Infinity;
-        if (hoursSince < 6) {
-          results.push({ saveKey, status: "already notified recently", hunger });
-          continue;
-        }
-
-        const subscription = save.subscription;
-        if (!subscription) {
-          results.push({ saveKey, status: "no subscription for this save", hunger });
-          continue;
-        }
-
-        await webpush.sendNotification(subscription, JSON.stringify({
-          title: "Lil Guy",
-          body: `He's hungry! Hunger is at ${Math.round(hunger)}.`,
-        }));
-
-        await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ last_notified: lastNotified.toISOString() }),
-        });
-
-        results.push({ saveKey, status: "notification sent", hunger });
-      } catch (innerError) {
-        console.error(`check-hunger error for ${saveKey}:`, innerError);
-        results.push({ saveKey, status: "error", message: innerError.message });
+    if (save.last_hunger_check) {
+      const lastCheckMs = new Date(save.last_hunger_check).getTime();
+      const wholeHours = Math.floor((now - lastCheckMs) / 3600000);
+      if (wholeHours >= 1) {
+        hunger = Math.max(0, hunger - wholeHours * seasonMult * weatherMult);
+        // advance only by the hours consumed, keeping the leftover fraction
+        save.last_hunger_check = new Date(lastCheckMs + wholeHours * 3600000).toISOString();
       }
+    } else {
+      save.last_hunger_check = new Date(now).toISOString();
     }
 
-    return res.status(200).json({ results });
-  } catch (error) {
-    console.error("check-hunger error:", error);
-    return res.status(500).json({ status: "error", message: error.message });
+    await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hunger, last_hunger_check: save.last_hunger_check }),
+    });
+
+    if (hunger >= 10) {
+      results.push({ saveKey, status: "not hungry yet", hunger });
+      continue;
+    }
+
+    const lastNotified = save.last_notified ? new Date(save.last_notified) : null;
+    const hoursSince = lastNotified ? (now - lastNotified.getTime()) / 3600000 : Infinity;
+    if (hoursSince < 6) {
+      results.push({ saveKey, status: "already notified recently", hunger });
+      continue;
+    }
+
+    const subscription = save.subscription;
+    if (!subscription) {
+      results.push({ saveKey, status: "no subscription for this save", hunger });
+      continue;
+    }
+
+    await webpush.sendNotification(subscription, JSON.stringify({
+      title: "Lil Guy",
+      body: `He's hungry! Hunger is at ${Math.round(hunger)}.`,
+    }));
+
+    await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ last_notified: new Date().toISOString() }),
+    });
+
+    results.push({ saveKey, status: "notification sent", hunger });
+  } catch (innerError) {
+    console.error(`check-hunger error for ${saveKey}:`, innerError);
+    results.push({ saveKey, status: "error", message: innerError.message });
   }
-};
+}
