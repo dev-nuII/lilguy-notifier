@@ -31,16 +31,23 @@ module.exports = async function handler(req, res) {
 
     for (const [saveKey, save] of Object.entries(allSaves)) {
       try {
-        const weatherMult = weatherRates[save.weather] ?? 1.0;
-
+        const weatherMult = weatherRates[save.weather] ?? const now = Date.now();
+        const now = Date.now();
         let hunger = save.hunger ?? 20;
-        if (save.last_hunger_check) {
-          const lastCheck = new Date(save.last_hunger_check);
-          const hoursPassed = (Date.now() - lastCheck.getTime()) / 3600000;
-          hunger = Math.max(0, hunger - Math.floor(hoursPassed) * seasonMult * weatherMult);
-          save.last_hunger_check = Date().toISOString();
-        }
 
+        if (save.last_hunger_check) {
+          const hoursPassed = (now - new Date(save.last_hunger_check).getTime()) / 3600000;
+          const wholeHours = Math.floor(hoursPassed);
+          if (wholeHours >= 1) {
+             hunger = Math.max(0, hunger - wholeHours * seasonMult * weatherMult);
+              // advance only by the hours consumed, keeping the leftover fraction
+             save.last_hunger_check = new Date(
+             new Date(save.last_hunger_check).getTime() + wholeHours * 3600000
+             ).toISOString();
+            }
+            } else {
+             save.last_hunger_check = new Date(now).toISOString();
+           }
         await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
