@@ -25,7 +25,6 @@
 </style>
 </head>
 <body>
-<canvas id="game" width="800" height="900"></canvas>
 <button id="enableNotifs" style="position: fixed; top: 10px; left: 10px; z-index: 10; padding: 8px 12px; font-family: monospace;">
   Enable Notifications</button>
 <div style="position: fixed; top: 60px; left: 10px; z-index: 10; font-family: monospace;">
@@ -44,71 +43,30 @@
   <button id="playBtn" style="padding:14px 44px;font-size:18px;font-family:monospace;
        background:#00ff00;border:none;cursor:pointer;">PLAY</button>
 </div>
-<!-- background music -->
-<audio id="myAudio1" src="alex-morgan-lofi-coffee-shop-568150.mp3"></audio>
-<!-- winter noises -->
-<audio id="myAudio3" src="turning_pages-snowy-window-lofi-455028.mp3"></audio>
-<!-- windy day sfx -->
-<audio id="myAudio4" src="freesound_community-windy-day-23531.mp3"></audio>
-<!-- summer sound sfx -->
-<audio id="myAudio5" src="turning_pages-birch-596924.mp3"></audio>
-<!-- rain abiance -->
-<audio id="myAudio6" src="whvle-rainy-day-chillhop-amp-lofi-207179.mp3"></audio>
-<!-- title screen sound -->
-<audio id="myAudio7" src="turning_pages-title-screen-602557.mp3"></audio>
+<!-- spring backgo-->
+<audio id="myAudio1" src="music/alex-morgan-lofi-coffee-shop-568150.mp3"></audio>
+<!-- winter background music -->
+<audio id="myAudio3" src="music/turning_pages-winter-reflection-451434.mp3"></audio>
+<!-- windy day music -->
+<audio id="myAudio4" src="music/turning_pages-mirrorwalk-reverie-401090.mp3"></audio>
+<!-- summer background music -->
+<audio id="myAudio5" src="music/turning_pages-birch-596924.mp3"></audio>
+<!-- rain ambiance -->
+<audio id="myAudio6" src="music/whvle-rainy-day-chillhop-amp-lofi-207179.mp3"></audio>
+<!-- title screen music -->
+<audio id="myAudio7" src="music/turning_pages-title-screen-602557.mp3"></audio>
 <!--- cloudy day ambiance-->
-<audio id="myAudio2" src="turning_pages-sea-of-ghosts-579004.mp3"></audio>
-
+<audio id="myAudio2" src="music/turning_pages-sea-of-ghosts-579004.mp3"></audio>
+<!--- autumn background music--->
+<audio id="myAudio8" src="music/turning_pages-autumn-sunset-session-600943.mp3"></audio>
+<!--- snow ambiance --->
+<audio id="myAudio9" src="music/turning_pages-snowy-window-lofi-455028.mp3"></audio>
   
 <script>
-// ---------- AUTH ----------
-// IP addresses are NOT a reliable way to identify a device — mobile carriers
-// (NAT pools) and iCloud Private Relay can change a phone's apparent IP
-// between two requests made seconds apart. Identity is instead handled by
-// the server, which sets an HttpOnly cookie holding your save code the first
-// time you load. That cookie gets sent automatically on every request below
-// (note the `credentials: "include"` on each fetch) — there's nothing to
-// generate or store on the client side anymore. Entering a save code via the
-// "Load with code" box re-points that cookie at a different save on this
-// browser (see the redeemBtn handler near the bottom of this script).
-//
-// This page and the /api endpoints below are now served from the SAME
-// origin (both deployed together on Vercel). That matters: cookies set by
-// an API on a different domain than the page (e.g. a GitHub Pages frontend
-// calling a vercel.app API) are third-party cookies, and Safari/Firefox/
-// Chrome all block those by default now — the cookie would silently never
-// get stored, which is why notifications and saves broke before. Same
-// origin avoids that entirely.
-
 // --enable notifications
   document.getElementById("enableNotifs").addEventListener("click", async () => {
   await setupPush();
   document.getElementById("enableNotifs").style.display = "none"; // hide once done
-});
-// play sfx or sound effects---------------
- function playAudio(id, volume) {
-  const audio = document.getElementById(id);
-  audio.volume = volume;
-  audio.play().catch(() => {}); // browsers may block autoplay until the user interacts
-}
-
-let musicStarted = false;
-
-function tryStartMusic() {
-  if (musicStarted) return;
-  const music = document.getElementById("myAudio1");
-  music.loop = true;
-  music.volume = 0.3;
-  music.play()
-    .then(() => { musicStarted = true; })
-    .catch(err => console.log("music blocked:", err.name));
-}
-
-// also retry on any real user gesture once 30s have passed
-["click", "touchend", "keydown"].forEach(evt => {
-  window.addEventListener(evt, () => {
-    if (state.session_seconds >= 30) tryStartMusic();
-  }, { passive: true });
 });
 // title screen music
   let titleStarted = false;
@@ -137,12 +95,67 @@ function stopTitle() {
   }, 40); // ~600ms fade
 }
 
+const AMBIENT_VOL = 0.4;
+let currentTrack = null; // id of whatever's currently playing
+const fadeTimers = {};
+
+const seasonTrack = {
+  spring: "myAudio1",
+  summer: "myAudio5",
+  fall:   "myAudio8",
+  winter: "myAudio3",
+};
+
+function wantedTrack() {
+  // weather ambiance takes priority when present
+  if (state.weather === "snow")  return "myAudio9";
+  if (state.weather === "rain")  return "myAudio6";
+  if (state.weather === "storm") return "myAudio4";
+  if (state.weather === "cloudy") return "myAudio2";
+  return seasonTrack[state.season] || "myAudio1";
+}
+
+function fadeTo(audio, target, ms, onDone) {
+  clearInterval(fadeTimers[audio.id]);
+  const steps = 20, start = audio.volume;
+  let i = 0;
+  fadeTimers[audio.id] = setInterval(() => {
+    i++;
+    audio.volume = Math.min(1, Math.max(0, start + (target - start) * (i / steps)));
+    if (i >= steps) { clearInterval(fadeTimers[audio.id]); if (onDone) onDone(); }
+  }, ms / steps);
+}
+
+function playTrack(id) {
+  if (currentTrack === id) return;
+  const prev = currentTrack ? document.getElementById(currentTrack) : null;
+  currentTrack = id;
+
+  const next = document.getElementById(id);
+  next.loop = true;
+  next.volume = 0;
+  next.currentTime = 0;
+  next.play()
+    .then(() => fadeTo(next, AMBIENT_VOL, 2500))
+    .catch(err => console.log("track blocked:", id, err.name));
+
+  if (prev) fadeTo(prev, 0, 2000, () => prev.pause());
+}
+
+function startMusicSystem() {
+  playTrack(wantedTrack());
+}
+
+function onWeatherChanged() {
+  playTrack(wantedTrack());
+}
+  
 document.getElementById("startScreen").addEventListener("pointerdown", tryStartTitle);
 tryStartTitle();
 document.getElementById("playBtn").addEventListener("click", () => {
   stopTitle();
   document.getElementById("startScreen").remove();
-  startup();
+  startup().then(startMusicSystem);
 });
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
@@ -625,14 +638,21 @@ async function startup() {
   await sleep(2000);
 
   lilguy_rect.x = state.x;
+  setInterval(async () => {
+  const w = await fetchWeather();
+  hunger_drain_weather = w.drain;
+  if (w.weather !== state.weather) {
+    state.weather = w.weather;
+    weather_particles = [];
+    onWeatherChanged();
+  }
+}, 10 * 60 * 1000);
   mainLoop();
 }
 
 // ---------- MAIN LOOP (runs once per second, matching original clock.tick(1)) ----------
   function tick() {
   if (!state.running) return;
- if (!musicStarted && state.session_seconds >= 30) tryStartMusic();
-  // hunger loop
   if (state.session_seconds % 3600 === 0 && state.session_seconds !== 0) {
     state.hunger = Math.max(0, state.hunger - mods.hunger_drain * hunger_drain_weather);
     state.pets_today = Math.min(8, state.pets_today + 1);
@@ -845,6 +865,11 @@ if (isNightTime() && pointInRect(clickX, clickY, goodnight_rect)) {
 }
   if (pointInRect(clickX, clickY, exit_rect)) {
     state.running = false;
+    if (currentTrack) {
+      const a = document.getElementById(currentTrack);
+      fadeTo(a, 0, 2000, () => a.pause());
+      currentTrack = null;
+    }
     clearScreen(season_colors[state.season]);
     let bye;
     if (state.mood === 1) bye = "bye!! come back soon ok? <3";
