@@ -84,7 +84,15 @@
     audio.volume = volumeLevel; // Set volume between 0.0 and 1.0
     audio.play();
 }
-
+function playAudioNext(audioToPlay, volumeLevel, nextAudio) {
+  const audio = document.getElementById(audioToPlay);
+  audio.volume = volumeLevel;
+  audio.play();
+  audio.addEventListener('ended', () => {
+  const audio2 = new Audio(document.getElemenrById(nextAudio));
+  audio2.play();
+});
+}
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -567,7 +575,9 @@ async function startup() {
 // ---------- MAIN LOOP (runs once per second, matching original clock.tick(1)) ----------
 function tick() {
   if (!state.running) return;
-
+  if (state.session_seconds % 240 === 0 && state.session_seconds !== 0) {
+    playAudioNext(myAudio1, 0.3, myAudio1);
+  }
   // hunger loop
   if (state.session_seconds % 3600 === 0 && state.session_seconds !== 0) {
     state.hunger = Math.max(0, state.hunger - mods.hunger_drain * hunger_drain_weather);
