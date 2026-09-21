@@ -320,14 +320,16 @@ async function loadSave() {
     console.log("cloud load failed:", e);
     return null;
   }
+}
 // fetching user ip
 async function getIp() {
   const response = await fetch('https://api.ipify.org?format=json');
   const data = await response.json();
   return data.ip;
 }
+
 let userIp = null;
-try { userIp = await getIp(); } catch (e) {}
+getIp().then(ip => { userIp = ip; }).catch(() => {});
 
 // saving data to firebase
 async function saveToCloud() {
@@ -546,7 +548,7 @@ async function startup() {
 
   // contributions screen
   clearScreen(BLACK);
-  drawText("Made by your_local_robit and outside help.", 60, 300, YELLOW);
+  drawText("Made by your_local_robit and claude.", 60, 300, YELLOW);
   await sleep(3000)
   clearScreen(BLACK);
   if (saved && (saved.save_code || saved.recovery_code)) {
@@ -572,8 +574,9 @@ async function startup() {
   function tick() {
   if (!state.running) return;
   if (!musicStarted && state.session_seconds >= 30) {
+  musicStarted = true;
   const music = document.getElementById("myAudio1");
-  music.loop = true;      // no need for the "ended" handling at all
+  music.loop = true;
   music.volume = 0.3;
   music.play().catch(() => {});
 }
