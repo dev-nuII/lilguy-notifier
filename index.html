@@ -78,7 +78,7 @@
   await setupPush();
   document.getElementById("enableNotifs").style.display = "none"; // hide once done
 });
-// play sfx or sound effects
+// play sfx or sound effects---------------
   function playAudio(audioToPlay, volumeLevel) {
     const audio = document.getElementById(audioToPlay);
     audio.volume = volumeLevel; // Set volume between 0.0 and 1.0
@@ -93,6 +93,8 @@ function playAudioNext(audioToPlay, volumeLevel, nextAudio) {
   audio2.play();
 });
 }
+function playBackgroundMusic() {
+  playAudioNext
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -573,9 +575,18 @@ async function startup() {
 }
 
 // ---------- MAIN LOOP (runs once per second, matching original clock.tick(1)) ----------
-function tick() {
+let startMusic = True;
+  function tick() {
   if (!state.running) return;
-  if (state.session_seconds % 240 === 0 && state.session_seconds !== 0) {
+  if (state.session_seconds % 30 === 0 && state.session_seconds !== 0 && startMusic === True) {
+    const audio1 = document.getElementById(myAudio1);
+    audio1.volume = volumeLevel;
+    audio1.play();
+    audio1.addEventListener('ended', () => {
+    startMusic = False;
+    }
+                            }
+  if (state.session_seconds % 240 === 0 && state.session_seconds !== 0 && startMusic === False) {
     playAudioNext(myAudio1, 0.3, myAudio1);
   }
   // hunger loop
