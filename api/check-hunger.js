@@ -58,9 +58,9 @@ module.exports = async function handler(req, res) {
     await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({hunger,last_hunger_check: save.last_hunger_check, last_hunger_check_local: toLocal(save.last_hunger_check),}),}),});
-
-    if (hunger >= 10) {
+      body: JSON.stringify({hunger,last_hunger_check: save.last_hunger_check, last_hunger_check_local: toLocal(save.last_hunger_check),}),});
+  
+      if (hunger >= 10) {
       results.push({ saveKey, status: "not hungry yet", hunger });
       continue;
     }
