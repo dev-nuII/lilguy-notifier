@@ -88,7 +88,6 @@ module.exports = async function handler(req, res) {
     results.push({ saveKey, status: "error", message: innerError.message });
   }
 }
-    results.push({ saveKey, status: "notification sent", hunger });
 
     return res.status(200).json({ results });
   } catch (error) {
