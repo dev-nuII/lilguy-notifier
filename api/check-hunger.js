@@ -38,12 +38,13 @@ module.exports = async function handler(req, res) {
           const lastCheck = new Date(save.last_hunger_check);
           const hoursPassed = (Date.now() - lastCheck.getTime()) / 3600000;
           hunger = Math.max(0, hunger - Math.floor(hoursPassed) * seasonMult * weatherMult);
+          save.last_hunger_check = new Date().toISOString();
         }
 
         await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ hunger, last_hunger_check: new Date().toISOString() }),
+          body: JSON.stringify({ hunger, last_hunger_check: save.last_hunger_check }),
         });
 
         if (hunger >= 10) {
