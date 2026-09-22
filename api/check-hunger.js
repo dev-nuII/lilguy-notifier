@@ -102,7 +102,7 @@ module.exports = async function handler(req, res) {
       }),
     });
 
-          }
+  
 
       results.push({ saveKey, status: "notification sent", hunger });
     } catch (innerError) {
