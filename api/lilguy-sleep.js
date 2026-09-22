@@ -6,7 +6,7 @@ const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
 const TZ = "America/Chicago";
-const SLEEP_DURATION_MS = 1 * 60 * 60 * 1000;
+const SLEEP_DURATION_MS = 4 * 60 * 60 * 1000;
 
 // tune this: cron runs hourly, only during the allowed window below,
 // so this is roughly the per-hour chance of a nap starting
@@ -59,6 +59,7 @@ module.exports = async function handler(req, res) {
             body: JSON.stringify({
               sleeping: false,
               sleep_wake_at: null,
+              stop_hunger_check: null,
             }),
           });
 
@@ -108,6 +109,7 @@ module.exports = async function handler(req, res) {
             sleep_wake_at: wakeAt,
             sleep_wake_at_local: toLocal(new Date(wakeAt).toISOString()),
             slept_today: todayStr,
+            stop_hunger_check: true,
           }),
         });
 
