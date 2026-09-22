@@ -36,6 +36,7 @@
   <button id="userName">Enter a name</button>
 </div>
 <canvas id="game" width="800" height="900"></canvas>
+
 <div id="startScreen" style="position:fixed;inset:0;z-index:20;
      background:#000;display:flex;flex-direction:column;
      align-items:center;justify-content:center;font-family:monospace;color:#fff;">
@@ -43,11 +44,24 @@
   <button id="playBtn" style="padding:14px 44px;font-size:18px;font-family:monospace;
        background:#00ff00;border:none;cursor:pointer;">PLAY</button>
 </div>
+
 <div id="exitScreen" style="display:none;position:fixed;inset:0;z-index:20;
      background:#000;flex-direction:column;
      align-items:center;justify-content:center;font-family:monospace;color:#fff;
      text-align:center;padding:20px;">
+  <p id="exitMessage" style="font-size:22px;margin-bottom:28px;max-width:600px;"></p>
+  <button id="playAgainBtn" style="padding:14px 44px;font-size:18px;font-family:monospace;
+       background:#00ff00;border:none;cursor:pointer;">PLAY AGAIN</button>
 </div>
+
+<div id="sleepScreen" style="display:none;position:fixed;inset:0;z-index:20;
+     background:#000;flex-direction:column;
+     align-items:center;justify-content:center;font-family:monospace;color:#fff;
+     text-align:center;padding:20px;">
+  <p id="sleepMessage" style="font-size:22px;">lilguy is sleeping, check back in a little while!</p>
+  <p id="sleepCountdown" style="font-size:14px;opacity:0.6;margin-top:8px;"></p>
+</div>
+
 <!-- spring backgo-->
 <audio id="myAudio1" src="music/alex-morgan-lofi-coffee-shop-568150.mp3"></audio>
 <!-- winter background music -->
@@ -66,7 +80,7 @@
 <audio id="myAudio8" src="music/turning_pages-autumn-sunset-session-600943.mp3"></audio>
 <!--- snow ambiance --->
 <audio id="myAudio9" src="music/turning_pages-snowy-window-lofi-455028.mp3"></audio>
-  
+
 <script>
 // wake logic lock
 let wakeLock = null;
@@ -82,7 +96,6 @@ async function requestWakeLock() {
       console.log("wake lock released");
     });
   } catch (e) {
-    // fails if the tab isn't visible, battery saver is on, etc. — not fatal
     console.log("wake lock request failed:", e.message);
   }
 }
@@ -94,20 +107,20 @@ async function releaseWakeLock() {
   }
 }
 
-// the lock is automatically released when the tab is hidden or backgrounded,
-// and does NOT automatically re-acquire itself — you have to do that manually
 document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible" && state.running) {
     await requestWakeLock();
   }
 });
+
 // --enable notifications
-  document.getElementById("enableNotifs").addEventListener("click", async () => {
+document.getElementById("enableNotifs").addEventListener("click", async () => {
   await setupPush();
-  document.getElementById("enableNotifs").style.display = "none"; // hide once done
+  document.getElementById("enableNotifs").style.display = "none";
 });
+
 // title screen music
-  let titleStarted = false;
+let titleStarted = false;
 
 function tryStartTitle() {
   if (titleStarted) return;
@@ -130,11 +143,11 @@ function stopTitle() {
       t.pause();
       t.currentTime = 0;
     }
-  }, 40); // ~600ms fade
+  }, 40);
 }
 
 const AMBIENT_VOL = 0.4;
-let currentTrack = null; // id of whatever's currently playing
+let currentTrack = null;
 const fadeTimers = {};
 
 const seasonTrack = {
@@ -145,7 +158,6 @@ const seasonTrack = {
 };
 
 function wantedTrack() {
-  // weather ambiance takes priority when present
   if (state.weather === "snow")  return "myAudio9";
   if (state.weather === "rain")  return "myAudio6";
   if (state.weather === "storm") return "myAudio4";
@@ -180,16 +192,59 @@ function playTrack(id) {
   if (prev) fadeTo(prev, 0, 2000, () => prev.pause());
 }
 
+function stopAllMusic() {
+  if (currentTrack) {
+    const a = document.getElementById(currentTrack);
+    fadeTo(a, 0, 2000, () => a.pause());
+    currentTrack = null;
+  }
+}
+
 function startMusicSystem() {
   playTrack(wantedTrack());
 }
 
 function onWeatherChanged() {
-  playTrack(wantedTrack());
+  if (!state.sleeping) playTrack(wantedTrack());
 }
-  
+
+// ---------- SLEEP SCREEN ----------
+function showSleepScreen() {
+  document.getElementById("sleepScreen").style.display = "flex";
+}
+function hideSleepScreen() {
+  document.getElementById("sleepScreen").style.display = "none";
+}
+
+function updateSleepCountdown() {
+  if (!state.sleep_wake_at) return;
+  const msLeft = state.sleep_wake_at - Date.now();
+  if (msLeft <= 0) {
+    document.getElementById("sleepCountdown").textContent = "waking up...";
+    return;
+  }
+  const h = Math.floor(msLeft / 3600000);
+  const m = Math.floor((msLeft % 3600000) / 60000);
+  document.getElementById("sleepCountdown").textContent = `back in ~${h}h ${m}m`;
+}
+
+// wakes the client's *local view* once the timer's up — the server (cron)
+// is the source of truth and already flipped sleeping=false in Firebase
+function wakeUp() {
+  state.sleeping = false;
+  state.sleep_wake_at = null;
+  state.current_line = "mm... good morning";
+  state.last_line_seen = "";
+  hideSleepScreen();
+  if (!currentTrack) startMusicSystem();
+}
+
 document.getElementById("startScreen").addEventListener("pointerdown", tryStartTitle);
 tryStartTitle();
+
+document.getElementById("playAgainBtn").addEventListener("click", () => {
+  location.reload();
+});
 
 document.getElementById("playBtn").addEventListener("click", async () => {
   stopTitle();
@@ -199,34 +254,21 @@ document.getElementById("playBtn").addEventListener("click", async () => {
   await startup();
 
   if (state.sleeping) {
-    state.running = false;
-    clearInterval(intervalId);
-    if (currentTrack) {
-      const a = document.getElementById(currentTrack);
-      fadeTo(a, 0, 2000, () => a.pause());
-      currentTrack = null;
-    }
-    const sleepMsg = "lilguy is sleeping, check back in a little while!";
-    clearScreen(BLACK);
-    drawText(sleepMsg, 180, 300, RED);
-    saveToCloud();
-    document.getElementById("exitScreen").style.display = "flex";
-    releaseWakeLock();
+    showSleepScreen();
+    updateSleepCountdown();
   } else {
     startMusicSystem();
   }
 });
+
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let canvasScale = 1; // CSS pixels per logical (800-wide) unit
+let canvasScale = 1;
 
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
-  const aspect = 800 / 600;
-
-  // scale to whichever dimension is the tighter fit — this is what makes portrait work
   const scaleFactor = Math.min(window.innerWidth / 800, window.innerHeight / 600);
   const cssWidth = 800 * scaleFactor;
   const cssHeight = 600 * scaleFactor;
@@ -271,7 +313,7 @@ let state = {
   event_running: false, change_change: 0, changevar: 1,
   lilguy2_0: false, one: 0,
   save_num: 0,
-  last_open_date: null,   // Date object, UTC midnight
+  last_open_date: null,
   last_open_date_str: null,
   gap: 0,
   highest_bond: 0,
@@ -284,6 +326,8 @@ let state = {
   line_display_timer: 0,
   last_line_seen: "",
   sleeping: false,
+  sleep_wake_at: null,   // timestamp (ms), written by the cron job
+  slept_today: null,     // "YYYY-MM-DD", written by the cron job
 };
 
 let hunger_drain_weather = 1.0;
@@ -292,7 +336,8 @@ let weather_particles = [];
 
 const exit_rect  = { x: 590, y: 120, w: 50, h: 50 };
 const feed_rect  = { x: 590, y: 180, w: 50, h: 50 };
-let lilguy_rect  = { x: state.x, y: 450, w: 30, h: 20 };  
+let lilguy_rect  = { x: state.x, y: 450, w: 30, h: 20 };
+
 // ---------- DIALOGUE ----------
 const dialogue = {
   happy: [
@@ -325,8 +370,8 @@ const season_colors = {
   summer: "rgb(255,250,205)",
   fall:   "rgb(255,235,210)",
 };
-const BOND_SCALE = 50; // every bond gain gets multiplied by this internally
-  const unlockTiers = [
+const BOND_SCALE = 50;
+const unlockTiers = [
   { threshold: 10 * BOND_SCALE, sprite: "wink",       frames: ["^_^", "^_^"],   lines: ["hehe, i feel closer to you now", "something feels different. good different."] },
   { threshold: 30 * BOND_SCALE, sprite: "dance",      frames: ["\\o/", "/o\\"], lines: ["i wanna dance!!", "watch this!"] },
   { threshold: 60 * BOND_SCALE, sprite: "heart_eyes", frames: ["<3_<3", "<3_<3"], lines: ["you're my favorite person, you know that?", "i really mean it. thank you."] },
@@ -379,6 +424,7 @@ function checkUnlocks() {
     }
   }
 }
+
 function drawWrappedText(text, x, y, maxChars, lineHeight, color) {
   const words = text.split(" ");
   let line = "";
@@ -396,7 +442,7 @@ function drawWrappedText(text, x, y, maxChars, lineHeight, color) {
   }
   ctx.fillText(line, x, currentY);
 }
-    
+
 function relationshipDescriptor() {
   if (state.bond >= 100 * BOND_SCALE) return "inseparable";
   if (state.bond >= 60 * BOND_SCALE) return "close";
@@ -410,7 +456,7 @@ function dateOnlyUTC(d) {
 }
 
 function gainBond(baseAmount) {
-  const noise = 0.85 + Math.random() * 0.3; // ±15% variance
+  const noise = 0.85 + Math.random() * 0.3;
   const gained = Math.round(baseAmount * BOND_SCALE * mods.bond_mult * noise);
   state.bond += gained;
   checkUnlocks();
@@ -436,7 +482,7 @@ function clearScreen(color) {
 async function loadSave() {
   try {
     const resp = await fetch("/api/load-save", {
-      credentials: "include", // send/receive the save-code cookie
+      credentials: "include",
     });
 
     if (!resp.ok) {
@@ -444,7 +490,6 @@ async function loadSave() {
     }
 
     const data = await resp.json();
-
     return data.save;
 
   } catch (e) {
@@ -452,7 +497,7 @@ async function loadSave() {
     return null;
   }
 }
-// fetching user ip
+
 async function getIp() {
   const response = await fetch('https://api.ipify.org?format=json');
   const data = await response.json();
@@ -462,9 +507,7 @@ async function getIp() {
 let userIp = null;
 getIp().then(ip => { userIp = ip; }).catch(() => {});
 
-// saving data to firebase
 async function saveToCloud() {
-
   const data = {
     mental_state: state.mental_state,
     mood: state.mood,
@@ -493,25 +536,21 @@ async function saveToCloud() {
     unlocked_tiers: state.unlocked_tiers,
     seen_first_snow: state.seen_first_snow,
     sleeping: state.sleeping,
+    sleep_wake_at: state.sleep_wake_at,
+    slept_today: state.slept_today,
   };
 
   try {
-
     const response = await fetch("/api/save-game", {
       method: "POST",
-      credentials: "include", // send/receive the save-code cookie
-
-      headers: {
-        "Content-Type": "application/json"
-      },
-
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
 
     if (!response.ok) {
       throw new Error("Save failed: HTTP " + response.status);
     }
-
   } catch (e) {
     console.log("cloud save failed:", e);
   }
@@ -549,7 +588,7 @@ async function fetchWeather() {
 
   let drain = 1.0;
   if (weather === "rain") drain = 1.1;
-  else if (weather === "storm") { drain = 1.15; state.mood += randInt(0, 1) * -1; }
+  else if (weather === "storm") drain = 1.15;
   else if (weather === "snow") drain = 1.2;
 
   return { weather, drain };
@@ -557,7 +596,6 @@ async function fetchWeather() {
 
 // ---------- STARTUP ----------
 async function startup() {
-  // season
   const month = new Date().getMonth() + 1;
   if ([12, 1, 2].includes(month)) state.season = "winter";
   else if ([3, 4, 5].includes(month)) state.season = "spring";
@@ -565,31 +603,28 @@ async function startup() {
   else state.season = "fall";
   mods = season_modifiers[state.season];
 
-  // weather
   const w = await fetchWeather();
   state.weather = w.weather;
   hunger_drain_weather = w.drain;
 
-  // first snow
   if (state.weather === "snow" && !state.seen_first_snow) {
-  state.seen_first_snow = true;
-  clearScreen(BLACK);
-  drawText("...wait.", 300, 250, WHITE);
-  await sleep(1800);
-  clearScreen(BLACK);
-  drawText("what IS that?", 260, 250, WHITE);
-  await sleep(1800);
-  clearScreen(BLACK);
-  drawText("it's so quiet. and everything's turning white.", 130, 250, "rgb(200,220,255)");
-  await sleep(2500);
-  clearScreen(BLACK);
-  drawText("i've never seen anything like this before.", 150, 250, "rgb(200,220,255)");
-  await sleep(2500);
-  state.bond += 8;
-  checkUnlocks();
-}
+    state.seen_first_snow = true;
+    clearScreen(BLACK);
+    drawText("...wait.", 300, 250, WHITE);
+    await sleep(1800);
+    clearScreen(BLACK);
+    drawText("what IS that?", 260, 250, WHITE);
+    await sleep(1800);
+    clearScreen(BLACK);
+    drawText("it's so quiet. and everything's turning white.", 130, 250, "rgb(200,220,255)");
+    await sleep(2500);
+    clearScreen(BLACK);
+    drawText("i've never seen anything like this before.", 150, 250, "rgb(200,220,255)");
+    await sleep(2500);
+    state.bond += 8;
+    checkUnlocks();
+  }
 
-  // load save
   const saved = await loadSave();
   const today = dateOnlyUTC(new Date());
 
@@ -613,29 +648,36 @@ async function startup() {
     state.highest_bond = saved.highest_bond ?? state.bond;
     state.unlocked_tiers = saved.unlocked_tiers ?? [];
     state.seen_first_snow = saved.seen_first_snow ?? false;
-    state.sleeping = saved.sleeping ?? false;
+
+    // ---- sleep state, driven by the cron job ----
+    state.sleep_wake_at = saved.sleep_wake_at ?? null;
+    state.slept_today = saved.slept_today ?? null;
+    const now = Date.now();
+    if (state.sleep_wake_at && now < state.sleep_wake_at) {
+      state.sleeping = true;
+    } else {
+      state.sleeping = false;
+      state.sleep_wake_at = null;
+    }
 
     for (const tier of unlockTiers) {
-  if (state.unlocked_tiers.includes(tier.threshold)) {
-    dialogue[tier.sprite] = tier.lines;
-  }
-}
+      if (state.unlocked_tiers.includes(tier.threshold)) {
+        dialogue[tier.sprite] = tier.lines;
+      }
+    }
 
-    // pets regen from last_pet_str
     if (saved.last_pet_str) {
       const lastPet = new Date(saved.last_pet_str);
       const hoursPassed = (Date.now() - lastPet.getTime()) / 3600000;
       state.pets_today = Math.min(8, state.pets_today + Math.floor(hoursPassed));
     }
 
-    // hunger decay from last_hunger_check
     if (saved.last_hunger_check) {
       const lastHunger = new Date(saved.last_hunger_check);
       const hoursPassed = (Date.now() - lastHunger.getTime()) / 3600000;
       state.hunger = Math.max(0, state.hunger - Math.floor(hoursPassed));
     }
 
-    // streak calc
     if (saved.last_open_date) {
       state.last_open_date = dateOnlyUTC(new Date(saved.last_open_date));
       state.gap = daysBetween(state.last_open_date, today);
@@ -657,13 +699,11 @@ async function startup() {
     state.gap = 999;
   }
 
-  // hunger influences mental state
   if (state.hunger <= 2) {
     state.mental_state = "bad";
     state.mood = 3;
   }
 
-  // deciding today's mood (only on a new day)
   const isNewDay = !state.last_open_date || daysBetween(state.last_open_date, today) !== 1;
   if (isNewDay) {
     const offDayChance = randInt(1, 10);
@@ -674,22 +714,19 @@ async function startup() {
     else state.mood = randInt(1, 2);
   }
 
-  // convert mood to mental state
   if (state.mood === 1) state.mental_state = "good";
   else if (state.mood === 3) state.mental_state = "bad";
   else state.mental_state = "neutral";
 
-  // contributions screen
   clearScreen(BLACK);
   drawText("Made by your_local_robit and Claude.", 60, 300, YELLOW);
-  await sleep(3000)
+  await sleep(3000);
   clearScreen(BLACK);
   if (saved && (saved.save_code || saved.recovery_code)) {
-  drawText("Save code: " + (saved.save_code || saved.recovery_code), 60, 330, YELLOW);
-}
+    drawText("Save code: " + (saved.save_code || saved.recovery_code), 60, 330, YELLOW);
+  }
   await sleep(3000);
 
-  // greeting
   clearScreen(BLACK);
   let greeting;
   if (state.gap === 0) greeting = "back already? nice";
@@ -700,96 +737,127 @@ async function startup() {
   await sleep(2000);
 
   lilguy_rect.x = state.x;
+
+  // recheck weather periodically
   setInterval(async () => {
-  const w = await fetchWeather();
-  hunger_drain_weather = w.drain;
-  if (w.weather !== state.weather) {
-    state.weather = w.weather;
-    weather_particles = [];
-    onWeatherChanged();
-  }
-}, 10 * 60 * 1000);
+    const w2 = await fetchWeather();
+    hunger_drain_weather = w2.drain;
+    if (w2.weather !== state.weather) {
+      state.weather = w2.weather;
+      weather_particles = [];
+      onWeatherChanged();
+    }
+  }, 10 * 60 * 1000);
+
+  // catch a nap that started server-side while this tab is open
+  setInterval(async () => {
+    const s = await loadSave();
+    if (!s) return;
+
+    if (s.sleeping && !state.sleeping) {
+      state.sleeping = true;
+      state.sleep_wake_at = s.sleep_wake_at ?? null;
+      state.slept_today = s.slept_today ?? null;
+      state.current_line = "";
+      stopAllMusic();
+      showSleepScreen();
+    } else if (!s.sleeping && state.sleeping) {
+      wakeUp();
+    }
+  }, 5 * 60 * 1000);
+
   mainLoop();
 }
 
-// ---------- MAIN LOOP (runs once per second, matching original clock.tick(1)) ----------
-  function tick() {
+// ---------- MAIN LOOP ----------
+function tick() {
   if (!state.running) return;
+
+  // while asleep: just watch the clock, skip everything else
+  if (state.sleeping) {
+    updateSleepCountdown();
+    if (state.sleep_wake_at && Date.now() >= state.sleep_wake_at) {
+      wakeUp();
+    }
+    return;
+  }
+
   if (state.session_seconds % 3600 === 0 && state.session_seconds !== 0) {
     state.hunger = Math.max(0, state.hunger - mods.hunger_drain * hunger_drain_weather);
     state.pets_today = Math.min(8, state.pets_today + 1);
   }
-  // bond tiers in tick()
-if (state.bond >= 100 * BOND_SCALE) state.lilguy_color = YELLOW;
-else if (state.bond >= 30 * BOND_SCALE) state.lilguy_color = "rgb(0,220,150)";
-else state.lilguy_color = GREEN;
-  // dialogue
+
+  if (state.bond >= 100 * BOND_SCALE) state.lilguy_color = YELLOW;
+  else if (state.bond >= 30 * BOND_SCALE) state.lilguy_color = "rgb(0,220,150)";
+  else state.lilguy_color = GREEN;
+
   state.speech_timer += 1;
   if (state.speech_timer >= 120) {
     state.speech_timer = 0;
-    if (randInt(1, 4) === 1) state.current_line = choice(dialogue[state.season]);
-    else if (state.mood === 1) state.current_line = choice(dialogue.happy);
-    else if (state.mood === 2) state.current_line = choice(dialogue.neutral);
-    if (randInt(1, 4) === 1) state.current_line = choice(dialogue[state.season]);
-    else if (state.mood === 3) {
-  state.current_line = state.gap >= 1 ? choice(dialogue.angry_missed) : choice(dialogue.angry);
-}
-  }
-  if (state.current_line !== state.last_line_seen) {
-  state.last_line_seen = state.current_line;
-  state.line_display_timer = 0;
-} else if (state.current_line) {
-  state.line_display_timer += 1;
-  if (state.line_display_timer >= 5) {
-    state.current_line = "";
-    state.last_line_seen = "";
-  }
-}
-  // meaningful choice moment
-if (!state.moment_active && !state.presence_moment_active && state.mood !== 3 && randInt(1, 1200) === 1) {
-  state.moment_active = true;
-  state.moment_expires_at = state.session_seconds + 20;
-  state.current_line = "hey... i found something. what should we do with it?";
-}
-if (state.moment_active && state.session_seconds >= state.moment_expires_at) {
-  state.moment_active = false;
-  state.current_line = "...guess it didn't matter that much.";
-  state.mood = state.mood === 1 ? 2 : state.mood;
-}
-
-// presence moment
-if (!state.moment_active && !state.presence_moment_active && state.mood !== 3 && randInt(1, 1800) === 1) {
-  state.presence_moment_active = true;
-  state.presence_moment_expires_at = state.session_seconds + 12;
-  state.current_line = "can you just... stay for a second?";
-}
-if (state.presence_moment_active && state.session_seconds >= state.presence_moment_expires_at) {
-  state.presence_moment_active = false;
-  state.current_line = "...thanks for staying.";
-}
-  // animations
-  if (state.session_seconds % 30 === 0 || state.animation_seconds_override !== 0) {
-   if (state.mood === 1) {
-    const unlockedSprites = unlockTiers
-      .filter(t => state.unlocked_tiers.includes(t.threshold))
-      .map(t => t.sprite);
-    const idle = choice(["walk", "wave", ...unlockedSprites]);
-    if (idle === "walk") { state.lilstate = "_>"; state.lilstate1 = "<_"; state.animation = 1; }
-    else if (idle === "wave") { state.lilstate = "0/"; state.lilstate1 = "0/"; state.animation = 3; }
-    else {
-      const tier = unlockTiers.find(t => t.sprite === idle);
-      state.lilstate = tier.frames[0];
-      state.lilstate1 = tier.frames[1];
+    if (randInt(1, 4) === 1 && state.mood !== 3) {
+      state.current_line = choice(dialogue[state.season]);
+    } else if (state.mood === 1) {
+      state.current_line = choice(dialogue.happy);
+    } else if (state.mood === 2) {
+      state.current_line = choice(dialogue.neutral);
+    } else {
+      state.current_line = state.gap >= 1 ? choice(dialogue.angry_missed) : choice(dialogue.angry);
     }
-  } else {
-    const idle = choice(["walk", "sit"]);
-    if (idle === "walk") { state.lilstate = "_>"; state.lilstate1 = "<_"; state.animation = 1; }
-    else { state.lilstate = "o"; state.lilstate1 = "o"; state.animation = 2; }
   }
+
+  if (state.current_line !== state.last_line_seen) {
+    state.last_line_seen = state.current_line;
+    state.line_display_timer = 0;
+  } else if (state.current_line) {
+    state.line_display_timer += 1;
+    if (state.line_display_timer >= 5) {
+      state.current_line = "";
+      state.last_line_seen = "";
+    }
+  }
+
+  if (!state.moment_active && !state.presence_moment_active && state.mood !== 3 && randInt(1, 1200) === 1) {
+    state.moment_active = true;
+    state.moment_expires_at = state.session_seconds + 20;
+    state.current_line = "hey... i found something. what should we do with it?";
+  }
+  if (state.moment_active && state.session_seconds >= state.moment_expires_at) {
+    state.moment_active = false;
+    state.current_line = "...guess it didn't matter that much.";
+    state.mood = state.mood === 1 ? 2 : state.mood;
+  }
+
+  if (!state.moment_active && !state.presence_moment_active && state.mood !== 3 && randInt(1, 1800) === 1) {
+    state.presence_moment_active = true;
+    state.presence_moment_expires_at = state.session_seconds + 12;
+    state.current_line = "can you just... stay for a second?";
+  }
+  if (state.presence_moment_active && state.session_seconds >= state.presence_moment_expires_at) {
+    state.presence_moment_active = false;
+    state.current_line = "...thanks for staying.";
+  }
+
+  if (state.session_seconds % 30 === 0 || state.animation_seconds_override !== 0) {
+    if (state.mood === 1) {
+      const unlockedSprites = unlockTiers
+        .filter(t => state.unlocked_tiers.includes(t.threshold))
+        .map(t => t.sprite);
+      const idle = choice(["walk", "wave", ...unlockedSprites]);
+      if (idle === "walk") { state.lilstate = "_>"; state.lilstate1 = "<_"; state.animation = 1; }
+      else if (idle === "wave") { state.lilstate = "0/"; state.lilstate1 = "0/"; state.animation = 3; }
+      else {
+        const tier = unlockTiers.find(t => t.sprite === idle);
+        state.lilstate = tier.frames[0];
+        state.lilstate1 = tier.frames[1];
+      }
+    } else {
+      const idle = choice(["walk", "sit"]);
+      if (idle === "walk") { state.lilstate = "_>"; state.lilstate1 = "<_"; state.animation = 1; }
+      else { state.lilstate = "o"; state.lilstate1 = "o"; state.animation = 2; }
+    }
   }
   state.session_seconds += 1;
 
-  // movement
   let text_surface = "_>";
   if (state.lilstate === "_>" && state.lilstate1 === "<_") {
     if (state.y === 1) {
@@ -806,11 +874,11 @@ if (state.presence_moment_active && state.session_seconds >= state.presence_mome
   } else if (state.lilstate === "o" && state.lilstate1 === "o") {
     text_surface = "o";
   } else if (state.lilstate === "-.-" && state.lilstate1 === "-.-") {
-  text_surface = "-.-";
-} else {
-  const tier = unlockTiers.find(t => t.frames[0] === state.lilstate);
-  if (tier) text_surface = tier.frames[0];
-}
+    text_surface = "-.-";
+  } else {
+    const tier = unlockTiers.find(t => t.frames[0] === state.lilstate);
+    if (tier) text_surface = tier.frames[0];
+  }
   lilguy_rect = { x: state.x, y: 450, w: 30, h: 20 };
 
   draw(text_surface);
@@ -819,35 +887,32 @@ if (state.presence_moment_active && state.session_seconds >= state.presence_mome
 function draw(text_surface) {
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, 0, 800, 600); // logical canvas bounds — always matches your design space
+  ctx.rect(0, 0, 800, 600);
   ctx.clip();
 
-  clearScreen(season_colors[state.season]);  // choice and goodbye buttons
+  clearScreen(season_colors[state.season]);
   if (state.moment_active) {
-  fillRect(keep_rect.x, keep_rect.y, keep_rect.w, keep_rect.h, "rgb(100,200,100)");
-  drawText("keep it", keep_rect.x + 10, keep_rect.y + 10, BLACK);
-  fillRect(share_rect.x, share_rect.y, share_rect.w, share_rect.h, "rgb(100,150,220)");
-  drawText("give it", share_rect.x + 10, share_rect.y + 10, BLACK);
-}
-if (isNightTime()) {
-  fillRect(goodnight_rect.x, goodnight_rect.y, goodnight_rect.w, goodnight_rect.h, "rgb(60,60,100)");
-  drawText("zzz", goodnight_rect.x + 8, goodnight_rect.y + 15, WHITE);
-}
-  // mood text
+    fillRect(keep_rect.x, keep_rect.y, keep_rect.w, keep_rect.h, "rgb(100,200,100)");
+    drawText("keep it", keep_rect.x + 10, keep_rect.y + 10, BLACK);
+    fillRect(share_rect.x, share_rect.y, share_rect.w, share_rect.h, "rgb(100,150,220)");
+    drawText("give it", share_rect.x + 10, share_rect.y + 10, BLACK);
+  }
+  if (isNightTime()) {
+    fillRect(goodnight_rect.x, goodnight_rect.y, goodnight_rect.w, goodnight_rect.h, "rgb(60,60,100)");
+    drawText("zzz", goodnight_rect.x + 8, goodnight_rect.y + 15, WHITE);
+  }
+
   if (state.mood === 1) drawText("mood :   :)", 140, 125, GREEN);
   else if (state.mood === 2) drawText("mood :  :|", 140, 125, YELLOW);
   else if (state.mood === 3) drawText("mood :   >:{", 140, 125, RED);
 
-  // current dialogue line
   if (state.current_line) {
-  const clampedX = Math.min(state.x, 600); // leaves room for ~20 chars before the right edge
-  drawWrappedText(state.current_line, clampedX, 430, 20, 22, state.lilguy_color);
-}
-  
-  // lil guy sprite
+    const clampedX = Math.min(state.x, 600);
+    drawWrappedText(state.current_line, clampedX, 430, 20, 22, state.lilguy_color);
+  }
+
   drawText(text_surface, state.x, 450, state.lilguy_color);
 
-  // weather
   const v = weather_visuals[state.weather];
   if (v) {
     if (v.mode === "fall") {
@@ -875,7 +940,6 @@ if (isNightTime()) {
     weather_particles = [];
   }
 
-  // divider
   ctx.strokeStyle = BLACK;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -883,57 +947,54 @@ if (isNightTime()) {
   ctx.lineTo(800, 250);
   ctx.stroke();
 
-  // GUI
   drawText(state.mental_state, 140, 180, GREEN);
   drawText(String(Math.round(state.hunger)), 230, 157, RED);
   drawText("HUNGER=", 140, 157, RED);
   drawText(relationshipDescriptor(), 140, 200, GREEN);
   fillRect(exit_rect.x, exit_rect.y, exit_rect.w, exit_rect.h, RED);
-  fillRect(feed_rect.x, feed_rect.y, feed_rect.w, feed_rect.h, BLUE);  
+  fillRect(feed_rect.x, feed_rect.y, feed_rect.w, feed_rect.h, BLUE);
   ctx.restore();
 }
 
 // ---------- INPUT ----------
 function handleClick(clickX, clickY) {
-  if (state.moment_active) {
-  if (pointInRect(clickX, clickY, keep_rect)) {
-    state.bond += 2;
-    state.hunger = Math.min(20, state.hunger + 4);
-    state.current_line = "i'll hang on to this. thanks for letting me.";
-    state.moment_active = false;
-    checkUnlocks();
-    saveToCloud();
-    return;
-  }
-  if (pointInRect(clickX, clickY, share_rect)) {
-    state.bond += 6;
-    state.current_line = "i gave it away. felt kinda good actually.";
-    state.moment_active = false;
-    checkUnlocks();
-    saveToCloud();
-    return;
-  }
-}
+  if (state.sleeping) return;
 
-if (isNightTime() && pointInRect(clickX, clickY, goodnight_rect)) {
-  state.current_line = choice([
-    "goodnight. i'll be here when you wake up.",
-    "sleep well. i mean it.",
-    "night. today was a good one, i think.",
-  ]);
-  state.lilstate = "-.-";
-  state.lilstate1 = "-.-";
-  state.sleeping = true;
-  saveToCloud();
-  return;
-}
+  if (state.moment_active) {
+    if (pointInRect(clickX, clickY, keep_rect)) {
+      state.bond += 2;
+      state.hunger = Math.min(20, state.hunger + 4);
+      state.current_line = "i'll hang on to this. thanks for letting me.";
+      state.moment_active = false;
+      checkUnlocks();
+      saveToCloud();
+      return;
+    }
+    if (pointInRect(clickX, clickY, share_rect)) {
+      state.bond += 6;
+      state.current_line = "i gave it away. felt kinda good actually.";
+      state.moment_active = false;
+      checkUnlocks();
+      saveToCloud();
+      return;
+    }
+  }
+
+  // flavor-only "goodnight" line — real sleep is controlled server-side
+  if (isNightTime() && pointInRect(clickX, clickY, goodnight_rect)) {
+    state.current_line = choice([
+      "goodnight. i'll be here when you wake up.",
+      "sleep well. i mean it.",
+      "night. today was a good one, i think.",
+    ]);
+    state.lilstate = "-.-";
+    state.lilstate1 = "-.-";
+    return;
+  }
+
   if (pointInRect(clickX, clickY, exit_rect)) {
     state.running = false;
-    if (currentTrack) {
-      const a = document.getElementById(currentTrack);
-      fadeTo(a, 0, 2000, () => a.pause());
-      currentTrack = null;
-    }
+    stopAllMusic();
     clearScreen(season_colors[state.season]);
     let bye;
     if (state.mood === 1) bye = "bye!! come back soon ok? <3";
@@ -942,6 +1003,8 @@ if (isNightTime() && pointInRect(clickX, clickY, goodnight_rect)) {
     drawText(bye, 180, 300, state.mood === 1 ? GREEN : state.mood === 3 ? RED : YELLOW);
     saveToCloud();
     clearScreen(BLACK);
+
+    document.getElementById("exitMessage").textContent = bye;
     document.getElementById("exitScreen").style.display = "flex";
     releaseWakeLock();
     return;
@@ -1010,14 +1073,6 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-
-// PushSubscription objects rely on an implicit toJSON() call inside
-// JSON.stringify() to expose endpoint/keys. That auto-invocation has
-// historically been unreliable across WebKit/iOS versions (it can silently
-// serialize to {} or drop the keys), which is what produces the server's
-// "Invalid push subscription" error. Building the plain object explicitly
-// — and falling back to getKey() if toJSON() ever comes back incomplete —
-// avoids depending on that implicit behavior.
 function subscriptionToPlainObject(subscription) {
   const toBase64Url = (buffer) => {
     if (!buffer) return null;
@@ -1038,7 +1093,6 @@ function subscriptionToPlainObject(subscription) {
     return json;
   }
 
-  // Fallback: build it manually from the underlying subscription object.
   return {
     endpoint: subscription.endpoint,
     expirationTime: subscription.expirationTime ?? null,
@@ -1077,7 +1131,7 @@ async function setupPush() {
 
   if (permission !== "granted") return;
 
-    let subscription = await registration.pushManager.getSubscription();
+  let subscription = await registration.pushManager.getSubscription();
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
@@ -1096,10 +1150,8 @@ async function setupPush() {
   try {
     const resp = await fetch("/api/save-push", {
       method: "POST",
-      credentials: "include", // send the save-code cookie so the server knows whose save this is
-      headers: {
-        "Content-Type": "application/json"
-      },
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: outgoingBody
     });
 
@@ -1114,18 +1166,20 @@ async function setupPush() {
     alert("Couldn't reach the server to save notification subscription: " + e.message);
   }
 }
+
 document.getElementById("userName").addEventListener("click", () => {
   const user = document.getElementById("userInput").value.trim();
   if (!user) return;
-  state.username = user;          // client-side only for now
+  state.username = user;
   alert("username is " + user);
 });
+
 document.getElementById("redeemBtn").addEventListener("click", async () => {
   const code = document.getElementById("recoveryInput").value;
   try {
     const resp = await fetch("/api/redeem-code", {
       method: "POST",
-      credentials: "include", // so the server can set the save-code cookie on this browser
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
     });
@@ -1135,12 +1189,11 @@ document.getElementById("redeemBtn").addEventListener("click", async () => {
       return;
     }
     alert("Save linked! Reloading...");
-    location.reload(); // simplest way to re-run startup() and pick up the linked save
+    location.reload();
   } catch (e) {
     alert("Redeem failed: " + e.message);
   }
 });
-
 </script>
 </body>
 </html>
