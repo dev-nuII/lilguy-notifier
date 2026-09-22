@@ -68,6 +68,39 @@
 <audio id="myAudio9" src="music/turning_pages-snowy-window-lofi-455028.mp3"></audio>
   
 <script>
+// wake logic lock
+let wakeLock = null;
+
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator)) {
+    console.log("Wake Lock API not supported on this browser");
+    return;
+  }
+  try {
+    wakeLock = await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release", () => {
+      console.log("wake lock released");
+    });
+  } catch (e) {
+    // fails if the tab isn't visible, battery saver is on, etc. — not fatal
+    console.log("wake lock request failed:", e.message);
+  }
+}
+
+async function releaseWakeLock() {
+  if (wakeLock) {
+    try { await wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+}
+
+// the lock is automatically released when the tab is hidden or backgrounded,
+// and does NOT automatically re-acquire itself — you have to do that manually
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible" && state.running) {
+    await requestWakeLock();
+  }
+}); hi
 // --enable notifications
   document.getElementById("enableNotifs").addEventListener("click", async () => {
   await setupPush();
@@ -157,24 +190,34 @@ function onWeatherChanged() {
   
 document.getElementById("startScreen").addEventListener("pointerdown", tryStartTitle);
 tryStartTitle();
-document.getElementById("playBtn").addEventListener("click", () => {
+
+document.getElementById("playBtn").addEventListener("click", async () => {
   stopTitle();
   document.getElementById("startScreen").remove();
-  
-  startup().then(if (state.sleeping === true){
+  requestWakeLock();
+
+  await startup();
+
+  if (state.sleeping) {
     state.running = false;
+    clearInterval(intervalId);
     if (currentTrack) {
       const a = document.getElementById(currentTrack);
       fadeTo(a, 0, 2000, () => a.pause());
       currentTrack = null;
     }
-    clearScreen(season_colors[state.season]);
-    const sleeping = "lilguy is sleeping, check back in a little while!"
-    drawText(bye, 180, 300, RED);
-    saveToCloud();
+    const sleepMsg = "lilguy is sleeping, check back in a little while!";
     clearScreen(BLACK);
+    drawText(sleepMsg, 180, 300, RED);
+    saveToCloud();
     document.getElementById("exitScreen").style.display = "flex";
-  } else { startup() }
+    try {
+      releaseWakeLock();
+    };
+  } else {
+    startMusicSystem();
+  }
+});
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -913,7 +956,7 @@ if (isNightTime() && pointInRect(clickX, clickY, goodnight_rect)) {
     saveToCloud();
     clearScreen(BLACK);
     document.getElementById("exitScreen").style.display = "flex";
-
+    releaseWakeLock();
     return;
   }
 
