@@ -43,6 +43,11 @@
   <button id="playBtn" style="padding:14px 44px;font-size:18px;font-family:monospace;
        background:#00ff00;border:none;cursor:pointer;">PLAY</button>
 </div>
+<div id="exitScreen" style="display:none;position:fixed;inset:0;z-index:20;
+     background:#000;flex-direction:column;
+     align-items:center;justify-content:center;font-family:monospace;color:#fff;
+     text-align:center;padding:20px;">
+</div>
 <!-- spring backgo-->
 <audio id="myAudio1" src="music/alex-morgan-lofi-coffee-shop-568150.mp3"></audio>
 <!-- winter background music -->
@@ -155,8 +160,21 @@ tryStartTitle();
 document.getElementById("playBtn").addEventListener("click", () => {
   stopTitle();
   document.getElementById("startScreen").remove();
-  startup().then(startMusicSystem);
-});
+  
+  startup().then(if (state.sleeping === true){
+    state.running = false;
+    if (currentTrack) {
+      const a = document.getElementById(currentTrack);
+      fadeTo(a, 0, 2000, () => a.pause());
+      currentTrack = null;
+    }
+    clearScreen(season_colors[state.season]);
+    const sleeping = "lilguy is sleeping, check back in a little while!"
+    drawText(bye, 180, 300, RED);
+    saveToCloud();
+    clearScreen(BLACK);
+    document.getElementById("exitScreen").style.display = "flex";
+  } else { startup() }
 // ---------- CANVAS SETUP ----------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -224,6 +242,7 @@ let state = {
   presence_moment_expires_at: 0,
   line_display_timer: 0,
   last_line_seen: "",
+  sleeping: false,
 };
 
 let hunger_drain_weather = 1.0;
@@ -432,6 +451,7 @@ async function saveToCloud() {
     highest_bond: state.highest_bond,
     unlocked_tiers: state.unlocked_tiers,
     seen_first_snow: state.seen_first_snow,
+    sleeping: state.sleeping,
   };
 
   try {
@@ -552,6 +572,7 @@ async function startup() {
     state.highest_bond = saved.highest_bond ?? state.bond;
     state.unlocked_tiers = saved.unlocked_tiers ?? [];
     state.seen_first_snow = saved.seen_first_snow ?? false;
+    state.sleeping = saved.sleeping ?? false;
 
     for (const tier of unlockTiers) {
   if (state.unlocked_tiers.includes(tier.threshold)) {
@@ -619,7 +640,7 @@ async function startup() {
 
   // contributions screen
   clearScreen(BLACK);
-  drawText("Made by your_local_robit and claude.", 60, 300, YELLOW);
+  drawText("Made by your_local_robit and Claude.", 60, 300, YELLOW);
   await sleep(3000)
   clearScreen(BLACK);
   if (saved && (saved.save_code || saved.recovery_code)) {
@@ -861,6 +882,19 @@ if (isNightTime() && pointInRect(clickX, clickY, goodnight_rect)) {
   ]);
   state.lilstate = "-.-";
   state.lilstate1 = "-.-";
+  const sleeping = true;
+  try {
+
+    const response = await fetch("/api/save-game", {
+      method: "POST",
+      credentials: "include", // send/receive the save-code cookie
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      sleeping: state.sleeping
+    });
   return;
 }
   if (pointInRect(clickX, clickY, exit_rect)) {
@@ -878,6 +912,8 @@ if (isNightTime() && pointInRect(clickX, clickY, goodnight_rect)) {
     drawText(bye, 180, 300, state.mood === 1 ? GREEN : state.mood === 3 ? RED : YELLOW);
     saveToCloud();
     clearScreen(BLACK);
+    document.getElementById("exitScreen").style.display = "flex";
+
     return;
   }
 
@@ -996,7 +1032,6 @@ async function setupPush() {
   let registration;
   try {
     registration = await navigator.serviceWorker.register("./sw.js");
-    alert("service worker registered");
   } catch (e) {
     alert("service worker registration failed: " + e.message);
     return;
@@ -1007,7 +1042,6 @@ async function setupPush() {
     return;
   }
 
-  alert("about to request permission");
   const permission = await Notification.requestPermission();
   alert("permission result: " + permission);
 
