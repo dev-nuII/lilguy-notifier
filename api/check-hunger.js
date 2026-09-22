@@ -33,12 +33,14 @@ module.exports = async function handler(req, res) {
     if (!allSaves) {
       return res.status(200).json({ status: "no saves found" });
     }
-
-    const seasonMult = seasonRates[getCurrentSeason()] ?? 1.0;
+      const seasonMult = seasonRates[getCurrentSeason()] ?? 1.0;
     const results = [];
 
     for (const [saveKey, save] of Object.entries(allSaves)) {
   try {
+    if(save.stop_hunger_check === true) {
+      reuturn res.status(200).json({ status: "lilguy is sleeping" });
+    }
     const weatherMult = weatherRates[save.weather] ?? 1.0;
     const now = Date.now();
     let hunger = save.hunger ?? 20;
