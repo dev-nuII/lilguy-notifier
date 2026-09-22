@@ -76,7 +76,7 @@ module.exports = async function handler(req, res) {
 
     const lastNotified = save.last_notified ? new Date(save.last_notified) : null;
     const hoursSince = lastNotified ? (now - lastNotified.getTime()) / 3600000 : Infinity;
-    if (hoursSince < 6) {
+    if (hoursSince < 1) {
       results.push({ saveKey, status: "already notified recently", hunger });
       continue;
     }
