@@ -49,7 +49,9 @@ module.exports = async function handler(req, res) {
       continue;
       }
     }
-    }
+    }catch {
+    console.log("error loading this file")
+  }
     const weatherMult = weatherRates[save.weather] ?? 1.0;
     const now = Date.now();
     let hunger = save.hunger ?? 20;
