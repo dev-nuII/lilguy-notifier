@@ -38,20 +38,12 @@ module.exports = async function handler(req, res) {
 
     for (const [saveKey, save] of Object.entries(allSaves)) {
   try {
-    if(save.stop_hunger_check === true) {
-      await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({last_hunger_check: save.last_hunger_check, last_hunger_check_local: toLocal(save.last_hunger_check),}),});
-  
-      if (hunger >= 10) {
-      results.push({ saveKey, status: "lilguy is sleeping", sleeping });
+    // asleep? skip hunger entirely — don't drain, don't notify, don't touch the timestamp
+    if (save.sleeping === true) {
+      results.push({ saveKey, status: "lilguy is sleeping, skipping hunger check" });
       continue;
-      }
     }
-    }catch {
-    console.log("error loading this file")
-  }
+
     const weatherMult = weatherRates[save.weather] ?? 1.0;
     const now = Date.now();
     let hunger = save.hunger ?? 20;
@@ -61,7 +53,6 @@ module.exports = async function handler(req, res) {
       const wholeHours = Math.floor((now - lastCheckMs) / 3600000);
       if (wholeHours >= 1) {
         hunger = Math.max(0, hunger - wholeHours * seasonMult * weatherMult);
-        // advance only by the hours consumed, keeping the leftover fraction
         save.last_hunger_check = new Date(lastCheckMs + wholeHours * 3600000).toISOString();
       }
     } else {
@@ -71,9 +62,14 @@ module.exports = async function handler(req, res) {
     await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({hunger,last_hunger_check: save.last_hunger_check, last_hunger_check_local: toLocal(save.last_hunger_check),}),});
-  
-      if (hunger >= 10) {
+      body: JSON.stringify({
+        hunger,
+        last_hunger_check: save.last_hunger_check,
+        last_hunger_check_local: toLocal(save.last_hunger_check),
+      }),
+    });
+
+    if (hunger >= 10) {
       results.push({ saveKey, status: "not hungry yet", hunger });
       continue;
     }
@@ -97,10 +93,14 @@ module.exports = async function handler(req, res) {
     }));
 
     const notifiedAt = new Date().toISOString();
-await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
-  method: "PATCH",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({last_notified: notifiedAt,last_notified_local: toLocal(notifiedAt),}),});
+    await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        last_notified: notifiedAt,
+        last_notified_local: toLocal(notifiedAt),
+      }),
+    });
 
     results.push({ saveKey, status: "notification sent", hunger });
   } catch (innerError) {
@@ -108,10 +108,3 @@ await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
     results.push({ saveKey, status: "error", message: innerError.message });
   }
 }
-
-    return res.status(200).json({ results });
-  } catch (error) {
-    console.error("check-hunger error:", error);
-    return res.status(500).json({ status: "error", message: error.message });
-  }
-};
