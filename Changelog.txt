@@ -15,4 +15,3 @@
 15: bug fix: apparently didn’t fix hunger bug, hopefully fixed it now
 16: added sfx mp3s and background music mp3s, next step is to tie them in
 17: added a sleep for lilguy (sleeps at a random interval for 8 hours)
-18: added a dev repository for testing purposes
