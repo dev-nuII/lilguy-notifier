@@ -1,4 +1,4 @@
- const { getSaveCodeFromReq, setSaveCodeCookie, generateSaveCode, setCorsHeaders } = require("../lib/cookies");
+ const { getSaveCodeFromReq, isValidSaveCode, setSaveCodeCookie, generateSaveCode, setCorsHeaders } = require("../lib/cookies");
 
 const FIREBASE_URL = process.env.FIREBASE_URL;
 const FIREBASE_SECRET = process.env.FIREBASE_SECRET;
@@ -21,7 +21,7 @@ const ALLOWED_FIELDS = [
 ];
 // inside the handler, replacing the code/data/fetch section:
 let code = getSaveCodeFromReq(req);
-if (!code || !CODE_RE.test(code)) code = generateSaveCode();
+if (!code || !isValidSaveCode(code)) code = generateSaveCode();
 
 const clean = { save_code: code };
 for (const key of ALLOWED_FIELDS) if (key in data) clean[key] = data[key];
