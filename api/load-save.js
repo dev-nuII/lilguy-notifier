@@ -22,28 +22,22 @@ async function createNewSave() {
   } while (existing);
 
   const defaultSave = {
-    mental_state: "neutral",
+   mental_state: "neutral",
     mood: 2,
-    event_running: false,
     hp: 5,
-    lilguy2_0: false,
-    one: 0,
-    change_change: 0,
-    changevar: 1,
     x_pos: 180,
     y_pos: 0,
-    x1_pos: 0,
     last_open_date: new Date().toISOString().slice(0, 10),
     streak: 0,
     bond: 0,
     animation: 0,
     last_hunger_check: new Date().toISOString(),
     hunger: 20,
-    machine_id: "web-client",
     pets_today: 8,
     last_pet_str: new Date().toISOString(),
     weather: "clear",
     save_num: 0,
+    save_code: SAVE_KEY,
     // Stored on the save itself (not just handed out as a cookie) so the
     // code travels with the record and can never get lost even if the
     // cookie is cleared, the browser is switched, etc.
