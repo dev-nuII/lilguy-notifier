@@ -13,22 +13,28 @@ module.exports = async function handler(req, res) {
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       return res.status(400).json({ error: "Invalid save data" });
     }
+const ALLOWED_FIELDS = [
+  "mental_state", "mood", "hp", "x_pos", "y_pos", "last_open_date", "streak",
+  "bond", "animation", "last_hunger_check", "hunger", "pets_today",
+  "last_pet_str", "weather", "save_num", "highest_bond",
+  "unlocked_tiers", "seen_first_snow",
+];
+const CODE_RE = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/; // match your generateSaveCode format
 
-    // The client always hits /api/load-save on startup first, so the cookie
-    // should already be set — but fall back to minting one here too so a
-    // save is never silently dropped if this somehow gets called first.
-    const code = getSaveCodeFromReq(req) || generateSaveCode();
+// inside the handler, replacing the code/data/fetch section:
+let code = getSaveCodeFromReq(req);
+if (!code || !CODE_RE.test(code)) code = generateSaveCode();
 
-    // This is a full overwrite (PUT) of /saves/{code}, so re-stamp save_code
-    // into the payload every time — otherwise it would get wiped out on the
-    // very next save instead of staying attached to the record.
-    data.save_code = code;
+const clean = { save_code: code };
+for (const key of ALLOWED_FIELDS) if (key in data) clean[key] = data[key];
+if ("hunger" in clean) clean.hunger = Math.min(20, Math.max(0, Number(clean.hunger) || 0));
 
-    await fetch(`${FIREBASE_URL}/saves/${code}.json?auth=${FIREBASE_SECRET}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+const fbResp = await fetch(`${FIREBASE_URL}/saves/${code}.json?auth=${FIREBASE_SECRET}`, {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(clean),
+});
+if (!fbResp.ok) throw new Error("Firebase returned " + fbResp.status);
 
     setSaveCodeCookie(res, code);
 
