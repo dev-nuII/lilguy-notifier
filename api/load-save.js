@@ -37,7 +37,6 @@ async function createNewSave() {
     last_pet_str: new Date().toISOString(),
     weather: "clear",
     save_num: 0,
-    save_code: SAVE_KEY,
     // Stored on the save itself (not just handed out as a cookie) so the
     // code travels with the record and can never get lost even if the
     // cookie is cleared, the browser is switched, etc.
