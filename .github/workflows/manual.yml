@@ -30,6 +30,7 @@ jobs:
             --exclude='api/save-game.js' \
             --exclude='api/load-save.js' \
             --exclude='api/reset.js' \
+            --exclude='api/call-rewrite.js \
             source/ target/
 
       - name: Commit and push changes
