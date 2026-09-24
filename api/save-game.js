@@ -17,7 +17,7 @@ const ALLOWED_FIELDS = [
   "mental_state", "mood", "hp", "x_pos", "y_pos", "last_open_date", "streak",
   "bond", "animation", "last_hunger_check", "hunger", "pets_today",
   "last_pet_str", "weather", "save_num", "highest_bond",
-  "unlocked_tiers", "seen_first_snow",
+  "unlocked_tiers", "seen_first_snow", "userIp",
 ];
 // inside the handler, replacing the code/data/fetch section:
 let code = getSaveCodeFromReq(req);
