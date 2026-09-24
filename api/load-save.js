@@ -1,5 +1,7 @@
 const {
-  getSaveCodeFromReq,
+  isDevRequest,
+  resolveSaveCode,
+  DEV_SAVE_KEY,
   setSaveCodeCookie,
   generateSaveCode,
   setCorsHeaders,
@@ -13,33 +15,35 @@ async function fetchSave(code) {
   return await resp.json(); // null if that save doesn't exist
 }
 
-async function createNewSave() {
-  // Astronomically unlikely to collide, but check anyway before claiming a code.
-  let code, existing;
-  do {
-    code = generateSaveCode();
-    existing = await fetchSave(code);
-  } while (existing);
+// fixedCode = "dev" in dev mode; otherwise mint a fresh unique code.
+async function createNewSave(fixedCode) {
+  let code = fixedCode;
+  if (!code) {
+    let existing;
+    do {
+      code = generateSaveCode();
+      existing = await fetchSave(code);
+    } while (existing);
+  }
 
+  const now = new Date().toISOString();
   const defaultSave = {
-   mental_state: "neutral",
+    mental_state: "neutral",
     mood: 2,
     hp: 5,
     x_pos: 180,
     y_pos: 0,
-    last_open_date: new Date().toISOString().slice(0, 10),
+    last_open_date: now.slice(0, 10),
     streak: 0,
     bond: 0,
     animation: 0,
-    last_hunger_check: new Date().toISOString(),
+    last_hunger_check: now,
     hunger: 20,
     pets_today: 8,
-    last_pet_str: new Date().toISOString(),
+    last_pet_str: now,
     weather: "clear",
     save_num: 0,
-    // Stored on the save itself (not just handed out as a cookie) so the
-    // code travels with the record and can never get lost even if the
-    // cookie is cleared, the browser is switched, etc.
+    // Stored on the save itself so the code travels with the record.
     save_code: code,
   };
 
@@ -58,19 +62,18 @@ module.exports = async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const cookieCode = getSaveCodeFromReq(req);
-    let code = cookieCode;
-    let save = cookieCode ? await fetchSave(cookieCode) : null;
+    const dev = isDevRequest(req);
+    let code = resolveSaveCode(req);
+    let save = code ? await fetchSave(code) : null;
 
     if (!save) {
-      // No cookie yet, or the cookie pointed at a save that no longer
-      // exists in Firebase — mint a fresh save + code for this browser.
-      const created = await createNewSave();
+      // Dev: create the "dev" save once. Prod: no cookie (or stale cookie),
+      // so mint a fresh save + code for this browser.
+      const created = await createNewSave(dev ? DEV_SAVE_KEY : null);
       code = created.code;
       save = created.save;
     } else if (!save.save_code) {
-      // Backfills a save created before save_code was stored on the record
-      // itself, so it doesn't silently stay "lost" going forward.
+      // Backfill saves created before save_code was stored on the record.
       save.save_code = code;
       await fetch(`${FIREBASE_URL}/saves/${code}/save_code.json?auth=${FIREBASE_SECRET}`, {
         method: "PUT",
@@ -79,9 +82,9 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Re-issue the cookie on every load to keep sliding the expiry forward
-    // and to make sure it's set at all on a brand-new browser.
-    setSaveCodeCookie(res, code);
+    // Prod re-issues the cookie on every load to slide the expiry forward.
+    // Dev ignores cookies entirely.
+    if (!dev) setSaveCodeCookie(res, code);
 
     delete save.vapid_private_key; // never send this to the browser
 
