@@ -10,7 +10,7 @@ const SLEEP_DURATION_MS = 4 * 60 * 60 * 1000;
 
 // tune this: cron runs hourly, only during the allowed window below,
 // so this is roughly the per-hour chance of a nap starting
-const SLEEP_CHANCE = 1 / 72;
+const SLEEP_CHANCE = 1 / 24;
 
 const SLEEP_WINDOW_START_HOUR = 8;  // naps can only start between 8am
 const SLEEP_WINDOW_END_HOUR = 20;   // and 8pm, local TZ
