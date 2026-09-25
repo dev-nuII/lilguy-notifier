@@ -7,6 +7,12 @@ async function saveToCloud() {
     mental_state: state.mental_state,
     mood: state.mood,
     hp: state.hp,
+    level: state.level,
+    max_hp: state.max_hp,
+    dmg: state.dmg,
+    recovery_seconds: state.recovery_seconds,
+    unlocked_levels: state.unlocked_levels,
+    last_regen_at: state.last_regen_at,
     x_pos: state.x,
     y_pos: state.y,
     last_open_date: new Date().toISOString().slice(0, 10),
@@ -22,8 +28,8 @@ async function saveToCloud() {
     highest_bond: state.highest_bond,
     unlocked_tiers: state.unlocked_tiers,
     seen_first_snow: state.seen_first_snow,
-    userIp: userIp,
-  };
+    userIp: userIp
+    };
 
   try {
     const response = await fetch("/api/save-game", {

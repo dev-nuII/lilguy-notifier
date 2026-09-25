@@ -14,6 +14,10 @@ const ALLOWED_FIELDS = [
   "bond", "animation", "last_hunger_check", "hunger", "pets_today",
   "last_pet_str", "weather", "save_num", "highest_bond",
   "unlocked_tiers", "seen_first_snow", "userIp",
+  // ---- RPG stats ---- ("gear" deliberately excluded: only cron/raid
+  // endpoints that roll gear server-side may write it, never the client.
+  "level", "max_hp", "dmg", "recovery_seconds",
+  "unlocked_levels", "last_regen_at",
 ];
 
 module.exports = async function handler(req, res) {
@@ -28,7 +32,7 @@ module.exports = async function handler(req, res) {
     }
 
     const dev = isDevRequest(req);
-    // Dev → "dev". Prod → validated cookie code, or a fresh code if missing/invalid.
+    // Dev â "dev". Prod â validated cookie code, or a fresh code if missing/invalid.
     const code = resolveSaveCode(req) || generateSaveCode();
 
     const clean = { save_code: code };

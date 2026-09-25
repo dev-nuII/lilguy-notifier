@@ -7,7 +7,9 @@ function updateIdleScreen() {
   // lines vanish after 5s in the game, so keep the last one visible here
   if (state.current_line) idleLastLine = state.current_line;
 
-  document.getElementById("hp").textContent = "HP: " + state.hp;
+  document.getElementById("level").textContent = "Level: " + state.level + " (DMG: " + state.dmg + ")";
+  document.getElementById("hp").textContent = "HP: " + state.hp + " / " + state.max_hp;
+  document.getElementById("gear").textContent = "Gear: " + state.gear.length + " item" + (state.gear.length === 1 ? "" : "s");
   document.getElementById("hunger").textContent = "Hunger: " + Math.round(state.hunger);
   document.getElementById("mood").textContent = "Mood: " + state.mental_state;
 

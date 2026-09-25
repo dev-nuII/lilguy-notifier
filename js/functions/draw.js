@@ -7,21 +7,21 @@ function draw(text_surface) {
   ctx.rect(0, 0, 800, 600);
   ctx.clip();
 
-  clearScreen(season_colors[state.season]);
+  clearScreen(BLACK);
   if (state.moment_active) {
     fillRect(keep_rect.x, keep_rect.y, keep_rect.w, keep_rect.h, "rgb(100,200,100)");
     drawText("keep it", keep_rect.x + 10, keep_rect.y + 10, BLACK);
     fillRect(share_rect.x, share_rect.y, share_rect.w, share_rect.h, "rgb(100,150,220)");
     drawText("give it", share_rect.x + 10, share_rect.y + 10, BLACK);
   }
-  if (isNightTime()) {
+   if (isNightTime()) {
     fillRect(goodnight_rect.x, goodnight_rect.y, goodnight_rect.w, goodnight_rect.h, "rgb(60,60,100)");
     drawText("zzz", goodnight_rect.x + 8, goodnight_rect.y + 15, WHITE);
   }
 
-  if (state.mood === 1) drawText("mood :   :)", 140, 125, GREEN);
-  else if (state.mood === 2) drawText("mood :  :|", 140, 125, YELLOW);
-  else if (state.mood === 3) drawText("mood :   >:{", 140, 125, RED);
+  if (state.mood === 1) drawText("mood :   :)", 0, 63, GREEN);
+  else if (state.mood === 2) drawText("mood :  :|", 0, 63, YELLOW);
+  else if (state.mood === 3) drawText("mood :   >:{", 0, 63, RED);
 
   if (state.current_line) {
     const clampedX = Math.min(state.x, 600);
@@ -57,17 +57,18 @@ function draw(text_surface) {
     weather_particles = [];
   }
 
-  ctx.strokeStyle = BLACK;
+  ctx.strokeStyle = GREEN;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, 250);
   ctx.lineTo(800, 250);
   ctx.stroke();
 
-  drawText(state.mental_state, 140, 180, GREEN);
-  drawText(String(Math.round(state.hunger)), 230, 157, RED);
-  drawText("HUNGER=", 140, 157, RED);
-  drawText(relationshipDescriptor(), 140, 200, GREEN);
+  drawText(state.mental_state, 0, 0, GREEN);
+  drawText(String(Math.round(state.hunger)), 90, 23, RED);
+  drawText("HUNGER=", 0, 23, RED);
+  drawText(relationshipDescriptor(), 0, 43, GREEN);
+  drawText("Gear: " + state.gear.length + " item" + (state.gear.length === 1 ? "" : "s"), 0, 83, WHITE);
   fillRect(exit_rect.x, exit_rect.y, exit_rect.w, exit_rect.h, RED);
   fillRect(feed_rect.x, feed_rect.y, feed_rect.w, feed_rect.h, BLUE);
   fillRect(idle_rect.x, idle_rect.y, idle_rect.w, idle_rect.h, ORANGE);
