@@ -1,0 +1,2 @@
+// data/push-data.js
+const VAPID_PUBLIC_KEY = "BG96bnN1CxHVi1bD3sKv6bk91y7OTF5JkKyW-ZBkmUW3XRKCx_nmNIkZtYlYSqp3mMNX_MP4Td4oDW06gehU4U0";
