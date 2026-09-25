@@ -15,3 +15,5 @@
 15: bug fix: apparently didn’t fix hunger bug, hopefully fixed it now
 16: added sfx mp3s and background music mp3s, next step is to tie them in
 17: added a sleep for lilguy (sleeps at a random interval for 8 hours)
+18: made a seperate GitHub repository, for necessary dev work. created workflows to move and push code from repository to another and made a devboard as an index for my functions.
+19: split the main.html file into js files (keeps the code clean)
