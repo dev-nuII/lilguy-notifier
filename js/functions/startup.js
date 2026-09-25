@@ -115,6 +115,13 @@ if (saved.last_hunger_check) {
     else state.mood = randInt(1, 2);
   }
 
+  // Still asleep — skip the greeting sequence below. wiring/main.js checks
+  // state.sleeping right after startup() resolves and shows the sleep
+  // screen itself, so all we need to do here is bail out early.
+  if (state.sleeping) {
+    return;
+  }
+
   if (state.mood === 1) state.mental_state = "good";
   else if (state.mood === 3) state.mental_state = "bad";
   else state.mental_state = "neutral";

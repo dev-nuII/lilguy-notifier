@@ -1,7 +1,7 @@
 // functions/handleClick.js
 // (moved out of js/game.js)
 
-function handleClick(clickX, clickY) {
+async function handleClick(clickX, clickY) {
   if (state.sleeping) return;
 
   if (state.moment_active) {
@@ -33,6 +33,14 @@ function handleClick(clickX, clickY) {
     ]);
     state.lilstate = "-.-";
     state.lilstate1 = "-.-";
+    state.sleeping = true;
+    clearScreen(BLACK);
+    drawText(state.current_line, 180, 300, RED);
+    await sleep(5000);
+    clearScreen(BLACK);
+    releaseWakeLock();
+    saveToCloud();
+    browserSleep();
     return;
   }
 
