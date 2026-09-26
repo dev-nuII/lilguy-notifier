@@ -13,7 +13,7 @@ const ALLOWED_FIELDS = [
   "mental_state", "mood", "hp", "x_pos", "y_pos", "last_open_date", "streak",
   "bond", "animation", "last_hunger_check", "hunger", "pets_today",
   "last_pet_str", "weather", "save_num", "highest_bond",
-  "unlocked_tiers", "seen_first_snow", "userIp",
+  "unlocked_tiers", "seen_first_snow", "userIp", "isBossfight",
   // ---- RPG stats ---- ("gear" deliberately excluded: only cron/raid
   // endpoints that roll gear server-side may write it, never the client.
   "level", "max_hp", "dmg", "recovery_seconds",

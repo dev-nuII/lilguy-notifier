@@ -24,13 +24,15 @@ module.exports = async function handler(req, res) {
 
         const lastCheck = save.last_idle_check ? new Date(save.last_idle_check).getTime() : now;
         const elapsedHours = (now - lastCheck) / 3600000;
-        const isHappy = (save.hunger ?? 20) >= HAPPY_HUNGER_MIN && save.mood !== 3;
+        const MOOD_RATE = { 1: 1.5, 2: 1 }; // happy = 1.5x, neutral = baseline 1x. Sad (3) isn't listed -> falls to 0.
+        const isFed = (save.hunger ?? 20) >= HAPPY_HUNGER_MIN;
+        const moodRate = MOOD_RATE[save.mood ?? 2] ?? 0;
 
         let idleHappySeconds = save.idle_happy_seconds ?? 0;
-        if (isHappy) {
-          idleHappySeconds += elapsedHours * 3600;
+        if (isFed && moodRate > 0) {
+            idleHappySeconds += elapsedHours * 3600 * moodRate;
         } else {
-          idleHappySeconds = 0; // neglect resets the streak
+            idleHappySeconds = 0; // hungry or sad resets the streak
         }
 
         const patch = {

@@ -10,9 +10,13 @@ function updateIdleScreen() {
   document.getElementById("level").textContent = "Level: " + state.level + " (DMG: " + state.dmg + ")";
   document.getElementById("hp").textContent = "HP: " + state.hp + " / " + state.max_hp;
   document.getElementById("gear").textContent = "Gear: " + state.gear.length + " item" + (state.gear.length === 1 ? "" : "s");
+  document.getElementById("gearList").innerHTML = state.gear.length
+  ? state.gear.map(g => `${g.rarity} ${g.slot} (+${g.bonus})`).join("<br>")
+  : "(none yet)";
   document.getElementById("hunger").textContent = "Hunger: " + Math.round(state.hunger);
   document.getElementById("mood").textContent = "Mood: " + state.mental_state;
-
+  document.getElementById("weather").textContent = "Weather: " + state.weather;
+  document.getElementById("lilguy-animation").textContent = state.lilstate;
   let sleepText = "Awake";
   if (state.sleeping) {
     const msLeft = Math.max(0, (state.sleep_wake_at || 0) - Date.now());

@@ -30,7 +30,7 @@ document.getElementById("playBtn").addEventListener("click", async () => {
 });
 
 document.getElementById("exitIdle").addEventListener("click", hideIdleScreen);
-
+document.getElementById("petLilguy").addEventListener("click", petLilguy);
 document.getElementById("userName").addEventListener("click", () => {
   const user = document.getElementById("userInput").value.trim();
   if (!user) return;

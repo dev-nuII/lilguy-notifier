@@ -79,13 +79,15 @@
       #idleScreen #exitIdle { padding: 8px 32px !important; font-size: 16px !important; }
     }
   </style>
-
+  <div id="gearList" style="font-size:14px;line-height:1.4;"></div>
   <div id="idleInner" style="margin:auto;max-width:600px;display:flex;flex-direction:column;align-items:center;">
     <p id="level"></p>
     <p id="hp"></p>
     <p id="gear"></p>
     <p id="hunger"></p>
     <p id="mood"></p>
+    <p id="weather"></p>
+    <p id="lilguy-animation"></p>
     <p id="sleeping"></p>
     <p id="clock"></p>
     <p id="date"></p>
@@ -93,6 +95,8 @@
     <p id="timeRunning"></p>
     <button id="exitIdle" style="padding:14px 44px;font-size:18px;font-family:monospace;
          background:#00ff00;color:#000;border:none;cursor:pointer;">Exit Idle mode</button>
+    <button id="petLilguy" style="padding:14px 44px;font-size:18px;font-family:monospace;
+         background:#00ff00;color:#000;border:none;cursor:pointer;">Pet lilguy</button>  
   </div>
 </div>
  <div id="sleepScreen" style="display:none;position:fixed;inset:0;z-index:20;

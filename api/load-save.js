@@ -54,6 +54,7 @@ async function createNewSave(fixedCode) {
     save_num: 0,
     // Stored on the save itself so the code travels with the record.
     save_code: code,
+    isBossfight: false,
   };
 
   await fetch(`${FIREBASE_URL}/saves/${code}.json?auth=${FIREBASE_SECRET}`, {

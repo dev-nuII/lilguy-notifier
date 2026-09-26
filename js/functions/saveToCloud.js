@@ -28,7 +28,8 @@ async function saveToCloud() {
     highest_bond: state.highest_bond,
     unlocked_tiers: state.unlocked_tiers,
     seen_first_snow: state.seen_first_snow,
-    userIp: userIp
+    userIp: userIp,
+    isBossfight: state.isBossfight,
     };
 
   try {
