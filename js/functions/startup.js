@@ -16,24 +16,23 @@ async function startup() {
 
   if (state.weather === "snow" && !state.seen_first_snow) {
     state.seen_first_snow = true;
-    clearScreen(BLACK);
-    drawText("...wait.", 300, 250, WHITE);
-    await sleep(1800);
-    clearScreen(BLACK);
-    drawText("what IS that?", 260, 250, WHITE);
-    await sleep(1800);
-    clearScreen(BLACK);
-    drawText("it's so quiet. and everything's turning white.", 130, 250, "rgb(200,220,255)");
-    await sleep(2500);
-    clearScreen(BLACK);
-    drawText("i've never seen anything like this before.", 150, 250, "rgb(200,220,255)");
-    await sleep(2500);
+    await showIntroMessage("...wait.", 1800);
+    await showIntroMessage("what IS that?", 1800);
+    await showIntroMessage("it's so quiet. and everything's turning white.", 2500);
+    await showIntroMessage("i've never seen anything like this before.", 2500);
     state.bond += 8;
     checkUnlocks();
   }
 
   const saved = await loadSave();
   const today = dateOnlyUTC(new Date());
+
+  // username/subscription come straight off the save record. The onboarding
+  // fields themselves (and their show/hide logic) now live on the title
+  // screen, handled by initOnboarding() before Play is even clicked — by the
+  // time we get here that screen (and those elements) are already gone.
+  state.username = (saved && saved.username) || state.username;
+  state.hasSubscription = !!(saved && saved.subscription);
 
   if (saved) {
     state.mental_state = saved.mental_state ?? state.mental_state;
@@ -124,9 +123,10 @@ if (saved.last_hunger_check) {
     else state.mood = randInt(1, 2);
   }
 
-  // Still asleep — skip the greeting sequence below. wiring/main.js checks
-  // state.sleeping right after startup() resolves and shows the sleep
-  // screen itself, so all we need to do here is bail out early.
+  // Still asleep — skip the greeting sequence below. The intro screen's
+  // Continue button (wiring/main.js) checks state.sleeping once the player
+  // clicks it and shows the sleep screen itself, so all we need to do here
+  // is bail out early.
   if (state.sleeping) {
     return;
   }
@@ -135,23 +135,20 @@ if (saved.last_hunger_check) {
   else if (state.mood === 3) state.mental_state = "bad";
   else state.mental_state = "neutral";
 
-  clearScreen(BLACK);
-  drawText("Made by your_local_robit and Claude.", 60, 300, YELLOW);
-  await sleep(3000);
-  clearScreen(BLACK);
+  await showIntroMessage("Made by your_local_robit and Claude.", 3000);
   if (saved && (saved.save_code || saved.recovery_code)) {
-    drawText("Save code: " + (saved.save_code || saved.recovery_code), 60, 330, YELLOW);
+    await showIntroMessage("Save code: " + (saved.save_code || saved.recovery_code), 3000);
   }
-  await sleep(3000);
 
-  clearScreen(BLACK);
   let greeting;
   if (state.gap === 0) greeting = "back already? nice";
   else if (state.gap === 1) greeting = "hey! good to see you";
   else if (state.gap <= 3) greeting = "it's been a bit, welcome back";
   else greeting = "oh — hey. it's been a while";
-  drawText(greeting, 60, 260, state.lilguy_color);
-  await sleep(2000);
+  await showIntroMessage(greeting, 2000);
+
+  document.getElementById("introMessage").textContent =
+    "Whenever you're ready — check your onboarding options above, then hit Continue.";
 
   lilguy_rect.x = state.x;
 
@@ -184,6 +181,7 @@ if (saved.last_hunger_check) {
   }, 5 * 60 * 1000);
  saveReady = !loadFailed;
   lastHungerAt = Date.now()
-  showIdleScreen();
-  mainLoop();
+  // showIdleScreen()/mainLoop() now fire from the intro screen's Continue
+  // button (js/wiring/main.js) so the player has time to read the messages
+  // above and use the onboarding fields before the game actually starts.
 }

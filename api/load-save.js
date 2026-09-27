@@ -55,6 +55,7 @@ async function createNewSave(fixedCode) {
     // Stored on the save itself so the code travels with the record.
     save_code: code,
     isBossfight: false,
+    created_at: now,
   };
 
   await fetch(`${FIREBASE_URL}/saves/${code}.json?auth=${FIREBASE_SECRET}`, {
@@ -92,13 +93,31 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    if (!save.created_at) {
+      // Backfill saves created before created_at was tracked. These are
+      // pre-existing players, so back-date them well past the 1-day mark
+      // rather than treating them as brand new.
+      save.created_at = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      await fetch(`${FIREBASE_URL}/saves/${code}/created_at.json?auth=${FIREBASE_SECRET}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(save.created_at),
+      });
+    }
+
     // Prod re-issues the cookie on every load to slide the expiry forward.
     // Dev ignores cookies entirely.
     if (!dev) setSaveCodeCookie(res, code);
 
     delete save.vapid_private_key; // never send this to the browser
 
-    return res.status(200).json({ save, saveCode: code });
+    // Tells the frontend whether/which onboarding fields to hide:
+    // - dev: always hide enable-notifs / redeem-code / name entry
+    // - hideRedeemCode: this browser's save-code cookie is more than a day old
+    const ageDays = (Date.now() - new Date(save.created_at).getTime()) / (24 * 60 * 60 * 1000);
+    const hideRedeemCode = dev || ageDays >= 1;
+
+    return res.status(200).json({ save, saveCode: code, dev, hideRedeemCode });
   } catch (error) {
     console.error("load-save error:", error);
     return res.status(500).json({ error: "Failed to load save" });

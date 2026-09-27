@@ -12,6 +12,8 @@ async function loadSave() {
     }
 
     const data = await resp.json();
+    isDevSave = !!data.dev;
+    hideRedeemCode = !!data.hideRedeemCode;
     return data.save;
 
   } catch (e) {

@@ -4,7 +4,7 @@
 
 document.getElementById("enableNotifs").addEventListener("click", async () => {
   await setupPush();
-  document.getElementById("enableNotifs").style.display = "none";
+  document.getElementById("notifsField").style.display = "none";
 });
 
 document.getElementById("startScreen").addEventListener("pointerdown", tryStartTitle);
@@ -18,24 +18,35 @@ document.getElementById("playBtn").addEventListener("click", async () => {
   stopTitle();
   document.getElementById("startScreen").remove();
   requestWakeLock();
+  document.getElementById("introScreen").style.display = "flex";
 
   await startup();
+});
+
+// Player hits Continue once they've read the messages above and used
+// whichever onboarding fields (notifications/save code/name) are showing.
+document.getElementById("introContinueBtn").addEventListener("click", () => {
+  document.getElementById("introScreen").style.display = "none";
 
   if (state.sleeping) {
     showSleepScreen();
     updateSleepCountdown();
   } else {
     startMusicSystem();
+    showIdleScreen();
+    mainLoop();
   }
 });
 
 document.getElementById("exitIdle").addEventListener("click", hideIdleScreen);
 document.getElementById("petLilguy").addEventListener("click", petLilguy);
+document.getElementById("feedLilguy").addEventListener("click", hungerButton);
 document.getElementById("userName").addEventListener("click", () => {
   const user = document.getElementById("userInput").value.trim();
   if (!user) return;
   state.username = user;
-  alert("username is " + user);
+  saveToCloud();
+  document.getElementById("nameField").style.display = "none";
 });
 
 document.getElementById("redeemBtn").addEventListener("click", async () => {

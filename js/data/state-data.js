@@ -42,6 +42,8 @@ let state = {
   sleeping: false,
   sleep_wake_at: null,   // timestamp (ms), written by the cron job
   slept_today: null,     // "YYYY-MM-DD", written by the cron job
+  username: null,        // player-entered name, saved on the record
+  hasSubscription: false, // set from the save's stored push subscription; UI-only, not persisted directly
 };
 
 let hunger_drain_weather = 1.0;

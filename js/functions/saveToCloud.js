@@ -30,6 +30,7 @@ async function saveToCloud() {
     seen_first_snow: state.seen_first_snow,
     userIp: userIp,
     isBossfight: state.isBossfight,
+    username: state.username,
     };
 
   try {

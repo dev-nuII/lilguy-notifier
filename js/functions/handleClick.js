@@ -74,16 +74,6 @@ async function handleClick(clickX, clickY) {
     return;
   }
 
-    if (pointInRect(clickX, clickY, feed_rect)) {
-    if (state.hunger < 20) {
-      const gained = Math.min(3, 20 - state.hunger);
-      state.hunger += gained;
-      state.bond += Math.round(gained * 2 * mods.bond_mult);
-    }
-    saveToCloud();
-    return;
-  }
-
   if (pointInRect(clickX, clickY, idle_rect)) {
     showIdleScreen();
     return;
