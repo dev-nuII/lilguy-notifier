@@ -1,4 +1,4 @@
-const { rollGear } = require("../lib/gear");
+const { rollGear, addGear } = require("../lib/gear");
 
 const FIREBASE_URL = process.env.FIREBASE_URL;
 const FIREBASE_SECRET = process.env.FIREBASE_SECRET;
@@ -49,7 +49,8 @@ module.exports = async function handler(req, res) {
         } else {
           results.push({ saveKey, status: "accumulating", idleHappySeconds });
         }
-
+        const { gear: merged, kept } = addGear(existingGear, gear);
+        patch.gear = merged; // one item per slot, best bonus wins
         await fetch(`${FIREBASE_URL}/saves/${saveKey}.json?auth=${FIREBASE_SECRET}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
