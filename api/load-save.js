@@ -30,13 +30,6 @@ async function createNewSave(fixedCode) {
   const defaultSave = {
     mental_state: "neutral",
     mood: 2,
-    hp: 5,
-    level: 0,
-    max_hp: 5,
-    dmg: 1,
-    recovery_seconds: 600,
-    gear: [],
-    unlocked_levels: [],
     last_regen_at: Date.now(),
     idle_happy_seconds: 0,
     last_idle_check: now,
@@ -54,7 +47,6 @@ async function createNewSave(fixedCode) {
     save_num: 0,
     // Stored on the save itself so the code travels with the record.
     save_code: code,
-    isBossfight: false,
     created_at: now,
   };
 
