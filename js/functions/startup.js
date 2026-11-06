@@ -12,7 +12,6 @@ async function startup() {
   const w = await fetchWeather();
   state.weather = w.weather;
   hunger_drain_weather = w.drain;
-  fetchBosses(); // no await — bossTable populates async, raid UI reads it when ready
 
   if (state.weather === "snow" && !state.seen_first_snow) {
     state.seen_first_snow = true;
@@ -37,15 +36,6 @@ async function startup() {
   if (saved) {
     state.mental_state = saved.mental_state ?? state.mental_state;
     state.mood = saved.mood ?? state.mood;
-    state.event_running = saved.event_running ?? false;
-    state.hp = saved.hp ?? state.hp;
-    state.level = saved.level ?? 0;
-    state.max_hp = saved.max_hp ?? state.max_hp;
-    state.dmg = saved.dmg ?? state.dmg;
-    state.recovery_seconds = saved.recovery_seconds ?? state.recovery_seconds;
-    state.gear = saved.gear ?? [];
-    state.unlocked_levels = saved.unlocked_levels ?? [];
-    state.last_regen_at = saved.last_regen_at ?? Date.now();
     state.x = saved.x_pos ?? state.x;
     state.y = saved.y_pos ?? state.y;
     state.streak = saved.streak ?? 0;
@@ -57,7 +47,6 @@ async function startup() {
     state.highest_bond = saved.highest_bond ?? state.bond;
     state.unlocked_tiers = saved.unlocked_tiers ?? [];
     state.seen_first_snow = saved.seen_first_snow ?? false;
-    state.isBossfight = saved.isBossfight ?? false;
 
     // ---- sleep state, driven by the cron job ----
     state.sleep_wake_at = saved.sleep_wake_at ?? null;

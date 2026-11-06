@@ -30,7 +30,6 @@ async function createNewSave(fixedCode) {
   const defaultSave = {
     mental_state: "neutral",
     mood: 2,
-    last_regen_at: Date.now(),
     idle_happy_seconds: 0,
     last_idle_check: now,
     x_pos: 180,

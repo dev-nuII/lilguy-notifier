@@ -26,7 +26,6 @@ function draw(text_surface) {
   ctx.lineTo(800, 250);
   ctx.stroke();
 
-  drawText("Gear: " + state.gear.length + " item" + (state.gear.length === 1 ? "" : "s"), 0, 83, WHITE);
   fillRect(exit_rect.x, exit_rect.y, exit_rect.w, exit_rect.h, RED);
   fillRect(feed_rect.x, feed_rect.y, feed_rect.w, feed_rect.h, BLUE);
   fillRect(idle_rect.x, idle_rect.y, idle_rect.w, idle_rect.h, ORANGE);

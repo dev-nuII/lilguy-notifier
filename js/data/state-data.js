@@ -16,7 +16,7 @@ const BLACK = "#000000";
 let state = {
   x: 180, y: 0,
   mood: 2, mental_state: "neutral",
-  hp: 5, hunger: 20,
+  hunger: 20,
   bond: 0, streak: 0,
   pets_today: 8,
   season: "fall", weather: "",

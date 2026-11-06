@@ -88,9 +88,5 @@ function tick() {
     const tier = unlockTiers.find(t => t.frames[0] === state.lilstate);
     if (tier) text_surface = tier.frames[0];
   }
-  if (state.isBossfight !== false) {
-    draw(text_surface);
-  } else {
-  updateIdleScreen()
-  };
+  draw(text_surface);
 }
