@@ -10,14 +10,10 @@ const FIREBASE_URL = process.env.FIREBASE_URL;
 const FIREBASE_SECRET = process.env.FIREBASE_SECRET;
 
 const ALLOWED_FIELDS = [
-  "mental_state", "mood", "hp", "x_pos", "y_pos", "last_open_date", "streak",
+  "mental_state", "mood", "x_pos", "y_pos", "last_open_date", "streak",
   "bond", "animation", "last_hunger_check", "hunger", "pets_today",
   "last_pet_str", "weather", "save_num", "highest_bond",
-  "unlocked_tiers", "seen_first_snow", "userIp", "isBossfight", "username",
-  // ---- RPG stats ---- ("gear" deliberately excluded: only cron/raid
-  // endpoints that roll gear server-side may write it, never the client.
-  "level", "max_hp", "dmg", "recovery_seconds",
-  "unlocked_levels", "last_regen_at",
+  "unlocked_tiers", "seen_first_snow", "userIp", "username",
 ];
 
 module.exports = async function handler(req, res) {
